@@ -1,0 +1,343 @@
+{
+  "closedAt": "2026-05-18T15:52:17.946Z",
+  "dashboard": {
+    "businessDate": "2026-05-18",
+    "nextNumber": 103,
+    "orderCount": 2,
+    "cancelledCount": 0,
+    "revenue": 45,
+    "statusCounts": {
+      "open": 0,
+      "in_production": 0,
+      "ready": 0,
+      "completed": 2,
+      "cancelled": 0
+    },
+    "productTotals": [
+      {
+        "productId": "frikadelle_broetchen",
+        "name": "Frikadellen-Brötchen",
+        "quantity": 6,
+        "revenue": 18,
+        "category": "Heißtheke",
+        "stationGroup": "hot"
+      },
+      {
+        "productId": "kassler_broetchen",
+        "name": "Kassler-Brötchen",
+        "quantity": 3,
+        "revenue": 12,
+        "category": "Heißtheke",
+        "stationGroup": "hot"
+      },
+      {
+        "productId": "schnitzel_broetchen",
+        "name": "Schnitzel-Brötchen",
+        "quantity": 3,
+        "revenue": 15,
+        "category": "Heißtheke",
+        "stationGroup": "hot"
+      }
+    ],
+    "registerTotals": [
+      {
+        "registerId": "1",
+        "registerName": "Kasse 1",
+        "orders": 1,
+        "revenue": 18
+      },
+      {
+        "registerId": "3",
+        "registerName": "Kasse 3",
+        "orders": 1,
+        "revenue": 27
+      }
+    ],
+    "stationTotals": [
+      {
+        "stationGroup": "hot",
+        "quantity": 12,
+        "revenue": 45
+      }
+    ],
+    "stationPerformance": [
+      {
+        "stationId": "hot1",
+        "stationName": "Heißtheke 1",
+        "group": "hot",
+        "orders": 2,
+        "items": 12,
+        "revenue": 45,
+        "averageMinutes": 0.2
+      },
+      {
+        "stationId": "hot2",
+        "stationName": "Heißtheke 2",
+        "group": "hot",
+        "orders": 0,
+        "items": 0,
+        "revenue": 0,
+        "averageMinutes": null
+      },
+      {
+        "stationId": "coffee",
+        "stationName": "Kaffee & Getränke",
+        "group": "coffee",
+        "orders": 0,
+        "items": 0,
+        "revenue": 0,
+        "averageMinutes": null
+      }
+    ],
+    "hourlyOrders": [
+      {
+        "hour": 8,
+        "label": "08:00",
+        "orders": 0
+      },
+      {
+        "hour": 9,
+        "label": "09:00",
+        "orders": 0
+      },
+      {
+        "hour": 10,
+        "label": "10:00",
+        "orders": 0
+      },
+      {
+        "hour": 11,
+        "label": "11:00",
+        "orders": 0
+      },
+      {
+        "hour": 12,
+        "label": "12:00",
+        "orders": 0
+      },
+      {
+        "hour": 13,
+        "label": "13:00",
+        "orders": 0
+      },
+      {
+        "hour": 14,
+        "label": "14:00",
+        "orders": 0
+      },
+      {
+        "hour": 15,
+        "label": "15:00",
+        "orders": 0
+      },
+      {
+        "hour": 16,
+        "label": "16:00",
+        "orders": 0
+      },
+      {
+        "hour": 17,
+        "label": "17:00",
+        "orders": 0
+      },
+      {
+        "hour": 18,
+        "label": "18:00",
+        "orders": 0
+      },
+      {
+        "hour": 19,
+        "label": "19:00",
+        "orders": 0
+      },
+      {
+        "hour": 20,
+        "label": "20:00",
+        "orders": 0
+      }
+    ],
+    "timeMetrics": {
+      "averageFirstStartMinutes": 0.7,
+      "averageReadyMinutes": 0.9,
+      "averagePickupMinutes": 1,
+      "averageCustomerMinutes": 1.9,
+      "activeOrderCount": 0,
+      "readyOrderCount": 0,
+      "measuredReadyOrders": 2,
+      "measuredCompletedOrders": 2,
+      "oldestActiveMinutes": null
+    },
+    "recentOrders": [
+      {
+        "id": "order_d5eaf27f-6322-47ce-ba60-815ecf99fac0",
+        "number": 102,
+        "businessDate": "2026-05-18",
+        "registerId": "1",
+        "registerName": "Kasse 1",
+        "source": "cashier",
+        "customerName": "",
+        "note": "",
+        "status": "completed",
+        "createdAt": "2026-05-18T15:49:04.493Z",
+        "updatedAt": "2026-05-18T15:50:53.473Z",
+        "cancelledAt": null,
+        "readyAt": "2026-05-18T15:49:58.867Z",
+        "completedAt": "2026-05-18T15:50:53.473Z",
+        "displayClearedAt": "2026-05-18T15:50:53.473Z",
+        "cancelReason": "",
+        "items": [
+          {
+            "lineId": "line_924dee6d-a778-4027-b3d1-fca10f8e5d3a",
+            "productId": "frikadelle_broetchen",
+            "name": "Frikadellen-Brötchen",
+            "category": "Heißtheke",
+            "stationGroup": "hot",
+            "price": 3,
+            "image": "/assets/products/frikadelle-broetchen.png",
+            "quantity": 6,
+            "status": "done",
+            "claimedBy": "hot1",
+            "startedAt": "2026-05-18T15:49:31.479Z",
+            "completedAt": "2026-05-18T15:49:58.867Z"
+          }
+        ],
+        "total": 18
+      },
+      {
+        "id": "order_01116475-43fd-460e-a356-9d5a989f5a96",
+        "number": 101,
+        "businessDate": "2026-05-18",
+        "registerId": "3",
+        "registerName": "Kasse 3",
+        "source": "cashier",
+        "customerName": "",
+        "note": "",
+        "status": "completed",
+        "createdAt": "2026-05-18T10:06:22.656Z",
+        "updatedAt": "2026-05-18T10:08:25.335Z",
+        "cancelledAt": null,
+        "readyAt": "2026-05-18T10:07:19.318Z",
+        "completedAt": "2026-05-18T10:08:25.335Z",
+        "displayClearedAt": "2026-05-18T10:08:25.335Z",
+        "cancelReason": "",
+        "items": [
+          {
+            "lineId": "line_d58b5ba4-f810-4c58-ab9d-3f44f5c41225",
+            "productId": "kassler_broetchen",
+            "name": "Kassler-Brötchen",
+            "category": "Heißtheke",
+            "stationGroup": "hot",
+            "price": 4,
+            "image": "/assets/products/kassler-broetchen.png",
+            "quantity": 3,
+            "status": "done",
+            "claimedBy": "hot1",
+            "startedAt": "2026-05-18T10:07:16.538Z",
+            "completedAt": "2026-05-18T10:07:19.318Z"
+          },
+          {
+            "lineId": "line_d2e1e6e1-cc43-46aa-859a-bc75581b09d4",
+            "productId": "schnitzel_broetchen",
+            "name": "Schnitzel-Brötchen",
+            "category": "Heißtheke",
+            "stationGroup": "hot",
+            "price": 5,
+            "image": "/assets/products/schnitzel-broetchen.png",
+            "quantity": 3,
+            "status": "done",
+            "claimedBy": "hot1",
+            "startedAt": "2026-05-18T10:07:16.538Z",
+            "completedAt": "2026-05-18T10:07:19.318Z"
+          }
+        ],
+        "total": 27
+      }
+    ]
+  },
+  "orders": [
+    {
+      "id": "order_d5eaf27f-6322-47ce-ba60-815ecf99fac0",
+      "number": 102,
+      "businessDate": "2026-05-18",
+      "registerId": "1",
+      "registerName": "Kasse 1",
+      "source": "cashier",
+      "customerName": "",
+      "note": "",
+      "status": "completed",
+      "createdAt": "2026-05-18T15:49:04.493Z",
+      "updatedAt": "2026-05-18T15:50:53.473Z",
+      "cancelledAt": null,
+      "readyAt": "2026-05-18T15:49:58.867Z",
+      "completedAt": "2026-05-18T15:50:53.473Z",
+      "displayClearedAt": "2026-05-18T15:50:53.473Z",
+      "cancelReason": "",
+      "items": [
+        {
+          "lineId": "line_924dee6d-a778-4027-b3d1-fca10f8e5d3a",
+          "productId": "frikadelle_broetchen",
+          "name": "Frikadellen-Brötchen",
+          "category": "Heißtheke",
+          "stationGroup": "hot",
+          "price": 3,
+          "image": "/assets/products/frikadelle-broetchen.png",
+          "quantity": 6,
+          "status": "done",
+          "claimedBy": "hot1",
+          "startedAt": "2026-05-18T15:49:31.479Z",
+          "completedAt": "2026-05-18T15:49:58.867Z"
+        }
+      ],
+      "total": 18
+    },
+    {
+      "id": "order_01116475-43fd-460e-a356-9d5a989f5a96",
+      "number": 101,
+      "businessDate": "2026-05-18",
+      "registerId": "3",
+      "registerName": "Kasse 3",
+      "source": "cashier",
+      "customerName": "",
+      "note": "",
+      "status": "completed",
+      "createdAt": "2026-05-18T10:06:22.656Z",
+      "updatedAt": "2026-05-18T10:08:25.335Z",
+      "cancelledAt": null,
+      "readyAt": "2026-05-18T10:07:19.318Z",
+      "completedAt": "2026-05-18T10:08:25.335Z",
+      "displayClearedAt": "2026-05-18T10:08:25.335Z",
+      "cancelReason": "",
+      "items": [
+        {
+          "lineId": "line_d58b5ba4-f810-4c58-ab9d-3f44f5c41225",
+          "productId": "kassler_broetchen",
+          "name": "Kassler-Brötchen",
+          "category": "Heißtheke",
+          "stationGroup": "hot",
+          "price": 4,
+          "image": "/assets/products/kassler-broetchen.png",
+          "quantity": 3,
+          "status": "done",
+          "claimedBy": "hot1",
+          "startedAt": "2026-05-18T10:07:16.538Z",
+          "completedAt": "2026-05-18T10:07:19.318Z"
+        },
+        {
+          "lineId": "line_d2e1e6e1-cc43-46aa-859a-bc75581b09d4",
+          "productId": "schnitzel_broetchen",
+          "name": "Schnitzel-Brötchen",
+          "category": "Heißtheke",
+          "stationGroup": "hot",
+          "price": 5,
+          "image": "/assets/products/schnitzel-broetchen.png",
+          "quantity": 3,
+          "status": "done",
+          "claimedBy": "hot1",
+          "startedAt": "2026-05-18T10:07:16.538Z",
+          "completedAt": "2026-05-18T10:07:19.318Z"
+        }
+      ],
+      "total": 27
+    }
+  ]
+}

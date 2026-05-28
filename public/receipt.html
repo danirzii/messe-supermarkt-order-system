@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bon · Messe Supermarkt</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="light">
+  <div class="app-shell no-print">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-mark">B</div>
+        <div>
+          <h1>Bon</h1>
+          <p>Zum Drucken im Browser Strg+P oder Button nutzen</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="/">Start</a>
+        <button onclick="window.print()">Drucken</button>
+      </nav>
+    </header>
+  </div>
+
+  <main id="receipt" class="receipt">Bon wird geladen...</main>
+
+  <script src="/app.js"></script>
+  <script src="/receipt.js"></script>
+</body>
+</html>

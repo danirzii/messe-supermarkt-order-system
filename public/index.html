@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Messe Supermarkt Order-System Pro</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-mark">M</div>
+        <div>
+          <h1>Messe Supermarkt</h1>
+          <p>Order-System Pro · 4 Kassen · 2 Heißtheken · 1 Kaffee-/Getränkestation</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="/dashboard.html">Dashboard</a>
+        <a href="/admin.html">Produkte</a>
+        <a href="/display.html">Abholanzeige</a>
+      </nav>
+    </header>
+
+    <main class="hero">
+      <section class="board">
+        <div class="kicker">Lokales Live-System</div>
+        <h2 class="big-title">Vier Kassen.<br>Klare Stationen.<br>Saubere Übersicht.</h2>
+        <p class="lead">Die Kassen senden Bestellungen zentral ab. Der Server vergibt automatisch die nächste Nummer und verteilt Heißtheken-Artikel an die beiden Heißtheken sowie Kaffee und Getränke an die Kaffee-/Getränkestation.</p>
+        <div class="stats-grid" style="margin-top: 28px;">
+          <div class="stat-card"><span>Nummernlogik</span><strong>zentral</strong></div>
+          <div class="stat-card"><span>Stationen</span><strong>3</strong></div>
+          <div class="stat-card"><span>Kassen</span><strong>4</strong></div>
+          <div class="stat-card"><span>Aktion intern</span><strong>Abgeholt</strong></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Gerät auswählen</h2>
+        <div class="role-grid">
+          <a class="role-card" href="/cashier.html?register=1"><span class="badge">Kasse</span><strong>Kasse 1</strong><span>Bestellungen eingeben und Bon drucken.</span></a>
+          <a class="role-card" href="/cashier.html?register=2"><span class="badge">Kasse</span><strong>Kasse 2</strong><span>Gleiche Nummernreihe, eigener Kassenname.</span></a>
+          <a class="role-card" href="/cashier.html?register=3"><span class="badge">Kasse</span><strong>Kasse 3</strong><span>Parallel senden ohne doppelte Nummern.</span></a>
+          <a class="role-card" href="/cashier.html?register=4"><span class="badge">Kasse</span><strong>Kasse 4</strong><span>Für die vierte Eingabe-Station.</span></a>
+          <a class="role-card" href="/station.html?station=hot1"><span class="badge green">Station</span><strong>Heißtheke 1</strong><span>Sieht alle offenen Heißtheken-Artikel.</span></a>
+          <a class="role-card" href="/station.html?station=hot2"><span class="badge green">Station</span><strong>Heißtheke 2</strong><span>Arbeitet parallel an derselben Warteschlange.</span></a>
+          <a class="role-card" href="/station.html?station=coffee"><span class="badge blue">Station</span><strong>Kaffee & Getränke</strong><span>Sieht Kaffee- und Getränke-Artikel.</span></a>
+          <a class="role-card" href="/dashboard.html"><span class="badge red">Chef</span><strong>Tagesübersicht</strong><span>Umsätze, Mengen, Wartezeit, Storno und Abholung.</span></a>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

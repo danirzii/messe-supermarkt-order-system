@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Station · Messe Supermarkt</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-mark">S</div>
+        <div>
+          <h1 id="pageTitle">Station</h1>
+          <p id="subtitle">Live-Warteschlange</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="/">Start</a>
+        <a href="/station.html?station=hot1">Heißtheke 1</a>
+        <a href="/station.html?station=hot2">Heißtheke 2</a>
+        <a href="/station.html?station=coffee">Kaffee</a>
+        <a href="/display.html">Anzeige</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="toolbar">
+        <div>
+          <span class="badge dark" id="openCount">0 offen</span>
+          <span class="badge dark" id="timeNow">--:--</span>
+        </div>
+        <button id="refresh" class="btn-dark">Aktualisieren</button>
+      </section>
+      <section id="orders" class="orders-board"></section>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/station.js"></script>
+</body>
+</html>

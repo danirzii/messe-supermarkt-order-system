@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Abholanzeige · Messe Supermarkt</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="display-body">
+  <div class="display-wrap">
+    <header class="topbar display-topbar">
+      <div class="brand">
+        <div class="logo-mark">M</div>
+        <div>
+          <h1>Abholung</h1>
+          <p>Kunden sehen hier nur fertige Bestellnummern</p>
+        </div>
+      </div>
+      <nav class="nav no-print">
+        <button id="soundToggle" type="button">Ton aktivieren</button>
+        <button id="staffToggle" type="button">Bedienmodus</button>
+        <a href="/dashboard.html">Dashboard</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="display-metrics" aria-label="Wartezeit und Status">
+        <article><span>Ø bis fertig</span><strong id="avgReady">-</strong></article>
+        <article><span>Aktiv</span><strong id="activeOrders">0</strong></article>
+        <article><span>Fertig</span><strong id="readyCount">0</strong></article>
+      </section>
+
+      <h2 class="display-title">Bitte Nummer beachten</h2>
+      <div id="ready" class="ready-grid"></div>
+
+      <section id="staffPanel" class="staff-panel no-print" hidden>
+        <div>
+          <strong>Bedienmodus</strong>
+          <span class="muted">Hier können fertige Nummern von der Anzeige entfernt werden. Das zählt als abgeholt.</span>
+        </div>
+        <button id="clearAllReady" type="button" class="btn-red">Alle fertigen Nummern entfernen</button>
+      </section>
+    </main>
+
+    <footer style="text-align:center;" class="muted">Wenn deine Nummer erscheint, ist die Bestellung abholbereit.</footer>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/display.js"></script>
+</body>
+</html>

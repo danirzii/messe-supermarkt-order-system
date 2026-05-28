@@ -1,0 +1,218 @@
+{
+  "version": 5,
+  "businessDate": "2026-05-18",
+  "nextNumber": 103,
+  "products": [
+    {
+      "id": "schnitzel_broetchen",
+      "name": "Schnitzel-Brötchen",
+      "category": "Heißtheke",
+      "stationGroup": "hot",
+      "price": 5,
+      "active": true,
+      "image": "/assets/products/schnitzel-broetchen.png"
+    },
+    {
+      "id": "leberkaese_broetchen",
+      "name": "Leberkäse-Brötchen",
+      "category": "Heißtheke",
+      "stationGroup": "hot",
+      "price": 3,
+      "active": true,
+      "image": "/assets/products/leberkaese-broetchen.png"
+    },
+    {
+      "id": "frikadelle_broetchen",
+      "name": "Frikadellen-Brötchen",
+      "category": "Heißtheke",
+      "stationGroup": "hot",
+      "price": 3,
+      "active": true,
+      "image": "/assets/products/frikadelle-broetchen.png"
+    },
+    {
+      "id": "kassler_broetchen",
+      "name": "Kassler-Brötchen",
+      "category": "Heißtheke",
+      "stationGroup": "hot",
+      "price": 4,
+      "active": true,
+      "image": "/assets/products/kassler-broetchen.png"
+    },
+    {
+      "id": "bockwurst",
+      "name": "Bockwurst",
+      "category": "Heißtheke",
+      "stationGroup": "hot",
+      "price": 3,
+      "active": true,
+      "image": "/assets/products/bockwurst.png"
+    },
+    {
+      "id": "kaffee",
+      "name": "Kaffee",
+      "category": "Kaffee",
+      "stationGroup": "coffee",
+      "price": 3,
+      "active": true,
+      "image": ""
+    },
+    {
+      "id": "kaffee_crema",
+      "name": "Kaffee Crema",
+      "category": "Kaffee",
+      "stationGroup": "coffee",
+      "price": 3,
+      "active": true,
+      "image": ""
+    },
+    {
+      "id": "cappuccino",
+      "name": "Cappuccino",
+      "category": "Kaffee",
+      "stationGroup": "coffee",
+      "price": 3,
+      "active": true,
+      "image": ""
+    },
+    {
+      "id": "latte_macchiato",
+      "name": "Latte Macchiato",
+      "category": "Kaffee",
+      "stationGroup": "coffee",
+      "price": 3,
+      "active": true,
+      "image": ""
+    },
+    {
+      "id": "milchkaffee",
+      "name": "Milchkaffee",
+      "category": "Kaffee",
+      "stationGroup": "coffee",
+      "price": 3,
+      "active": true
+    },
+    {
+      "id": "milchschock",
+      "name": "Milchschock",
+      "category": "Kaffee",
+      "stationGroup": "coffee",
+      "price": 3,
+      "active": true,
+      "image": ""
+    },
+    {
+      "id": "cola_05",
+      "name": "Espresso",
+      "category": "Kaffee",
+      "stationGroup": "coffee",
+      "price": 2.5,
+      "active": true,
+      "image": ""
+    },
+    {
+      "id": "wasser_05",
+      "name": "Espresso Doppelt",
+      "category": "Kaffee",
+      "stationGroup": "coffee",
+      "price": 5,
+      "active": true,
+      "image": ""
+    },
+    {
+      "id": "apfelschorle_05",
+      "name": "Apfelschorle 0,5 l",
+      "category": "Getränke",
+      "stationGroup": "coffee",
+      "price": 2.2,
+      "active": false,
+      "image": ""
+    }
+  ],
+  "orders": [
+    {
+      "id": "order_86665104-f825-4f6f-bac5-a33c6bec84dd",
+      "number": 102,
+      "businessDate": "2026-05-18",
+      "registerId": "1",
+      "registerName": "Kasse 1",
+      "source": "cashier",
+      "customerName": "",
+      "note": "",
+      "status": "open",
+      "createdAt": "2026-05-18T17:44:11.142Z",
+      "updatedAt": "2026-05-18T17:44:11.142Z",
+      "cancelledAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "displayClearedAt": null,
+      "cancelReason": "",
+      "items": [
+        {
+          "lineId": "line_b23b35a4-b4f8-420c-90e4-9798965fccac",
+          "productId": "frikadelle_broetchen",
+          "name": "Frikadellen-Brötchen",
+          "category": "Heißtheke",
+          "stationGroup": "hot",
+          "price": 3,
+          "image": "/assets/products/frikadelle-broetchen.png",
+          "quantity": 2,
+          "status": "open",
+          "claimedBy": null,
+          "startedAt": null,
+          "completedAt": null
+        },
+        {
+          "lineId": "line_2ee2110b-9bf9-438a-8032-788403fe4917",
+          "productId": "cola_05",
+          "name": "Espresso",
+          "category": "Kaffee",
+          "stationGroup": "coffee",
+          "price": 2.5,
+          "image": "",
+          "quantity": 1,
+          "status": "open",
+          "claimedBy": null,
+          "startedAt": null,
+          "completedAt": null
+        }
+      ],
+      "total": 8.5
+    },
+    {
+      "id": "order_6b785abd-482c-4a00-b703-3029829d833e",
+      "number": 101,
+      "businessDate": "2026-05-18",
+      "registerId": "1",
+      "registerName": "Kasse 1",
+      "source": "cashier",
+      "customerName": "",
+      "note": "",
+      "status": "completed",
+      "createdAt": "2026-05-18T17:42:38.687Z",
+      "updatedAt": "2026-05-18T17:43:49.884Z",
+      "cancelledAt": null,
+      "readyAt": "2026-05-18T17:43:03.952Z",
+      "completedAt": "2026-05-18T17:43:49.884Z",
+      "displayClearedAt": "2026-05-18T17:43:49.884Z",
+      "cancelReason": "",
+      "items": [
+        {
+          "lineId": "line_7dc44a75-98a7-4cea-a032-419d61df7bb7",
+          "productId": "schnitzel_broetchen",
+          "name": "Schnitzel-Brötchen",
+          "category": "Heißtheke",
+          "stationGroup": "hot",
+          "price": 5,
+          "image": "/assets/products/schnitzel-broetchen.png",
+          "quantity": 3,
+          "status": "done",
+          "claimedBy": "hot1",
+          "startedAt": "2026-05-18T17:43:00.150Z",
+          "completedAt": "2026-05-18T17:43:03.952Z"
+        }
+      ],
+      "total": 15
+    }
+  ]
+}

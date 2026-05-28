@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard · Messe Supermarkt</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-mark">D</div>
+        <div>
+          <h1>Dashboard – Tagesübersicht</h1>
+          <p>Bestellungen · Umsatz · Wartezeit · Stationsleistung</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="/">Start</a>
+        <a href="/admin.html">Produkte</a>
+        <a href="/api/export/orders.csv">CSV Export</a>
+        <button id="closeDay" type="button">Tagesabschluss</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="stats-grid dashboard-kpis" id="stats"></section>
+
+      <section class="dashboard-grid pro-dashboard-grid">
+        <div class="grid">
+          <section class="panel">
+            <div class="toolbar">
+              <div>
+                <h2>Bestellungen im Zeitverlauf</h2>
+                <span class="muted">Live-Verlauf nach Uhrzeit</span>
+              </div>
+            </div>
+            <div id="timelineChart" class="timeline-chart"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Letzte Bestellungen</h2>
+            <table class="pro-table">
+              <thead><tr><th>Nr.</th><th>Kasse</th><th>Status</th><th>Summe</th><th>Zeit</th><th>Aktion</th></tr></thead>
+              <tbody id="recentOrders"></tbody>
+            </table>
+          </section>
+
+          <section class="panel">
+            <h2>Artikel heute</h2>
+            <table class="pro-table">
+              <thead><tr><th>Artikel</th><th>Station</th><th>Menge</th><th>Umsatz</th></tr></thead>
+              <tbody id="productTotals"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="grid">
+          <section class="panel">
+            <h2>Stationen – Leistung</h2>
+            <div id="stationPerformance" class="station-performance"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Kassen</h2>
+            <table class="pro-table">
+              <thead><tr><th>Kasse</th><th>Best.</th><th>Umsatz</th></tr></thead>
+              <tbody id="registerTotals"></tbody>
+            </table>
+          </section>
+
+          <section class="panel">
+            <h2>Status</h2>
+            <table class="pro-table">
+              <tbody id="statusTotals"></tbody>
+            </table>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/dashboard.js"></script>
+</body>
+</html>

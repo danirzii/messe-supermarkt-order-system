@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Produkte · Messe Supermarkt</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-mark">P</div>
+        <div>
+          <h1>Produkte</h1>
+          <p>Artikel, Preise, Bilder und Stationen verwalten</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="/">Start</a>
+        <a href="/dashboard.html">Dashboard</a>
+      </nav>
+    </header>
+
+    <main class="grid">
+      <section class="panel">
+        <h2>Neues Produkt</h2>
+        <div class="form-grid product-form-grid">
+          <label>Name
+            <input id="newName" placeholder="z.B. Schnitzel-Brötchen" />
+          </label>
+          <label>Kategorie
+            <input id="newCategory" placeholder="Heißtheke / Kaffee / Getränke" />
+          </label>
+          <label>Station
+            <select id="newStation">
+              <option value="hot">Heißtheke</option>
+              <option value="coffee">Kaffee & Getränke</option>
+            </select>
+          </label>
+          <label>Preis
+            <input id="newPrice" type="number" min="0" step="0.01" placeholder="4.50" />
+          </label>
+          <label>Bildpfad optional
+            <input id="newImage" placeholder="/assets/products/neues-produkt.png" />
+          </label>
+          <button id="addProduct" class="btn-green">Hinzufügen</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Alle Produkte</h2>
+          <button id="reload" class="btn-dark">Neu laden</button>
+        </div>
+        <div id="products" class="product-admin-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/admin.js"></script>
+</body>
+</html>

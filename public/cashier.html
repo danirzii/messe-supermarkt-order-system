@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kasse · Messe Supermarkt</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-mark">M</div>
+        <div>
+          <h1 id="pageTitle">Kasse</h1>
+          <p id="pageSubtitle">Bestellung eingeben · Nummer wird automatisch vergeben</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="/">Start</a>
+        <a href="/dashboard.html">Dashboard</a>
+        <a href="/display.html">Anzeige</a>
+      </nav>
+    </header>
+
+    <main class="cashier-screen">
+      <section class="panel cashier-menu">
+        <div class="mini-section-title">Menü</div>
+        <div class="segmented vertical" id="categoryTabs"></div>
+      </section>
+
+      <section class="panel cashier-products">
+        <div class="toolbar cashier-toolbar">
+          <div>
+            <h2>Produkte</h2>
+            <span class="muted">Heißtheke, Kaffee und Getränke</span>
+          </div>
+          <input class="search" id="search" placeholder="Artikel suchen..." autocomplete="off" />
+        </div>
+        <div id="products" class="product-grid"></div>
+      </section>
+
+      <aside class="panel cart-sticky cashier-cart">
+        <div class="cart-title-row">
+          <h2>Warenkorb</h2>
+          <span class="badge dark">Live</span>
+        </div>
+        <div id="cart" class="cart-list"></div>
+        <div class="total-box">
+          <span>Summe</span>
+          <strong id="cartTotal">0,00 €</strong>
+        </div>
+        <div class="grid" style="grid-template-columns: 1fr;">
+          <label>Notiz für Stationen
+            <textarea id="note" rows="3" placeholder="z.B. extra Zucker, ohne Senf..."></textarea>
+          </label>
+          <button id="submitOrder" class="btn-primary btn-green">Bestellung senden</button>
+          <button id="clearCart" class="btn-dark">Warenkorb leeren</button>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="successModal">
+    <div class="modal-card">
+      <div class="kicker">Bestellung gesendet</div>
+      <div class="modal-number" id="modalNumber">#---</div>
+      <p class="lead" style="text-align:center; margin: 12px auto 20px;">Die Bestellung wurde an die passenden Stationen verteilt.</p>
+      <div class="actions">
+        <button id="printReceipt" class="btn-blue">Bon öffnen</button>
+        <button id="closeModal" class="btn-green">Nächste Bestellung</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/cashier.js"></script>
+</body>
+</html>
