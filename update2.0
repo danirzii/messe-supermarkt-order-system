@@ -1,0 +1,908 @@
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = __dirname;
+const TARGETS = [
+  'server.js',
+  'public/display.html',
+  'public/display.js',
+  'public/dashboard.html',
+  'public/index.html',
+  'public/styles.css'
+];
+
+function file(name) { return path.join(ROOT, name); }
+function exists(name) { return fs.existsSync(file(name)); }
+function read(name) { return fs.readFileSync(file(name), 'utf8'); }
+function write(name, content) { fs.writeFileSync(file(name), content, 'utf8'); }
+
+function assertFile(name) {
+  if (!exists(name)) {
+    throw new Error('Datei fehlt: ' + name + '. Bitte Script im Hauptordner von order-system-v5 ausfuehren.');
+  }
+}
+
+function replaceOnce(content, search, replacement, label) {
+  if (!content.includes(search)) throw new Error('Konnte Stelle nicht finden: ' + label);
+  return content.replace(search, replacement);
+}
+
+function insertBefore(content, marker, insertion, label) {
+  const firstLine = insertion.trim().split('\n')[0];
+  if (content.includes(firstLine)) return content;
+  if (!content.includes(marker)) throw new Error('Konnte Einfuegepunkt nicht finden: ' + label);
+  return content.replace(marker, insertion + '\n' + marker);
+}
+
+function backupFiles() {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupDir = path.join(ROOT, 'backup-before-v7-settings-' + stamp);
+  fs.mkdirSync(backupDir, { recursive: true });
+
+  const files = [...TARGETS, 'public/dashboard.js'];
+
+  for (const name of files) {
+    if (!exists(name)) continue;
+    const dst = path.join(backupDir, name);
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.copyFileSync(file(name), dst);
+  }
+
+  return backupDir;
+}
+
+const DEFAULT_SETTINGS_BLOCK = `
+// ------------------------------------------------------------
+// Programm-Einstellungen V7
+// ------------------------------------------------------------
+// Diese Werte sind nur Standardwerte. Die echten Einstellungen werden
+// in data/db.json gespeichert und koennen ueber /settings.html geaendert werden.
+const DEFAULT_APP_SETTINGS = {
+  displayAutoHideMinutes: 10,
+  displayMaxReadyNumbers: 8,
+  displayRefreshSeconds: 15,
+  displayShowMetrics: true,
+  displaySoundVolume: 70,
+  displayBilingual: true
+};
+`;
+
+const DISPLAY_FUNCTIONS_V7 = `function normalizeAppSettings(raw = {}) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const defaults = DEFAULT_APP_SETTINGS;
+
+  function numberValue(key, min, max) {
+    const rawValue = source[key];
+    const parsed = Number(rawValue);
+    const fallback = defaults[key];
+
+    if (!Number.isFinite(parsed)) return fallback;
+
+    return Math.max(min, Math.min(max, parsed));
+  }
+
+  return {
+    displayAutoHideMinutes: numberValue('displayAutoHideMinutes', 0, 120),
+    displayMaxReadyNumbers: Math.round(numberValue('displayMaxReadyNumbers', 1, 24)),
+    displayRefreshSeconds: Math.round(numberValue('displayRefreshSeconds', 5, 120)),
+    displayShowMetrics: source.displayShowMetrics === false ? false : true,
+    displaySoundVolume: Math.round(numberValue('displaySoundVolume', 0, 100)),
+    displayBilingual: source.displayBilingual === false ? false : true
+  };
+}
+
+function getAppSettingsFromDb(db) {
+  return normalizeAppSettings(db && db.settings ? db.settings : {});
+}
+
+function getAppSettings() {
+  return getAppSettingsFromDb(readDb());
+}
+
+function updateAppSettings(body = {}) {
+  const db = readDb();
+  db.settings = normalizeAppSettings({ ...(db.settings || {}), ...(body || {}) });
+  writeDb(db);
+  return db.settings;
+}
+
+function autoHideMs(settings) {
+  const minutes = Number(settings.displayAutoHideMinutes || 0);
+
+  if (!Number.isFinite(minutes) || minutes <= 0) return null;
+
+  return minutes * 60 * 1000;
+}
+
+function autoHideExpiredDisplayOrders(db = readDb()) {
+  const settings = getAppSettingsFromDb(db);
+  const hideMs = autoHideMs(settings);
+
+  if (!hideMs) return db;
+
+  const now = Date.now();
+  let changed = false;
+
+  for (const order of db.orders) {
+    if (order.status !== 'ready') continue;
+    if (order.displayHiddenAt) continue;
+    if (!order.readyAt) continue;
+
+    const readyTime = new Date(order.readyAt).getTime();
+    if (!Number.isFinite(readyTime)) continue;
+
+    if (now - readyTime >= hideMs) {
+      order.displayHiddenAt = nowIso();
+      order.updatedAt = order.displayHiddenAt;
+      changed = true;
+    }
+  }
+
+  if (changed) writeDb(db);
+
+  return db;
+}
+
+function isVisibleOnPickupDisplay(order, now = Date.now(), settings = null) {
+  if (!order || order.status !== 'ready') return false;
+  if (order.displayHiddenAt) return false;
+
+  const effectiveSettings = settings || getAppSettingsFromDb(readDb());
+  const hideMs = autoHideMs(effectiveSettings);
+
+  if (!hideMs) return true;
+
+  if (!order.readyAt) return true;
+
+  const readyTime = new Date(order.readyAt).getTime();
+
+  if (!Number.isFinite(readyTime)) return true;
+
+  return now - readyTime < hideMs;
+}
+
+function buildDisplaySummary(db = readDb()) {
+  const settings = getAppSettingsFromDb(db);
+  const now = Date.now();
+  const ordersToday = db.orders.filter((order) => order.businessDate === db.businessDate);
+  const readyOrders = ordersToday.filter((order) => order.status === 'ready');
+  const visibleReady = readyOrders.filter((order) => isVisibleOnPickupDisplay(order, now, settings));
+  const hiddenReady = readyOrders.filter((order) => !isVisibleOnPickupDisplay(order, now, settings));
+
+  return {
+    autoHideAfterMinutes: settings.displayAutoHideMinutes,
+    visibleReadyCount: visibleReady.length,
+    hiddenReadyCount: hiddenReady.length,
+    readyTotalCount: readyOrders.length,
+    settings
+  };
+}
+
+function buildDisplayPayload() {
+  const db = autoHideExpiredDisplayOrders(readDb());
+  const settings = getAppSettingsFromDb(db);
+  const now = Date.now();
+
+  const ready = db.orders
+    .filter((order) => isVisibleOnPickupDisplay(order, now, settings))
+    .sort((a, b) => new Date(a.readyAt || a.createdAt) - new Date(b.readyAt || b.createdAt))
+    .slice(0, settings.displayMaxReadyNumbers)
+    .map((order) => ({
+      id: order.id,
+      number: order.number,
+      registerName: order.registerName,
+      createdAt: order.createdAt,
+      readyAt: order.readyAt,
+      waitMinutes: minutesRounded(msBetween(order.createdAt, order.readyAt))
+    }));
+
+  return {
+    ready,
+    metrics: buildTimeMetrics(db),
+    display: buildDisplaySummary(db),
+    settings
+  };
+}
+
+function reannounceOrder(orderId) {
+  const db = readDb();
+  const order = findOrderOrThrow(db, orderId);
+
+  if (order.status !== 'ready') {
+    const err = new Error('Nur fertige Bestellungen koennen erneut angezeigt werden.');
+    err.status = 409;
+    throw err;
+  }
+
+  order.readyAt = nowIso();
+  order.displayHiddenAt = null;
+  order.updatedAt = order.readyAt;
+
+  writeDb(db);
+
+  return order;
+}
+`;
+
+const DISPLAY_HTML = `<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Abholanzeige · Pickup Display · Messe Supermarkt</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="display-body pickup-display-v6 pickup-display-v7" data-ready-count="0" data-show-metrics="true">
+  <div class="pickup-shell">
+    <header class="pickup-header">
+      <div class="pickup-brand">
+        <div class="pickup-wordmark">
+          <span>Messe</span>
+          <span>Supermarkt</span>
+        </div>
+        <div class="pickup-divider"></div>
+        <div>
+          <h1>
+            <span>Abholbereit</span>
+            <span>Ready for pickup</span>
+          </h1>
+          <p>Bitte holen Sie Ihre Bestellung an der Theke ab.<br>Please collect your order at the counter.</p>
+        </div>
+      </div>
+
+      <div class="pickup-controls no-print">
+        <button id="soundToggle" type="button">Ton aktivieren / Enable sound</button>
+        <button id="testSound" type="button">Ton testen / Test sound</button>
+        <button id="fullscreenButton" type="button">Vollbild / Fullscreen</button>
+        <a href="/settings.html" class="button">Einstellungen</a>
+      </div>
+    </header>
+
+    <main class="pickup-main">
+      <section class="pickup-status-row" aria-label="Pickup status">
+        <article>
+          <span>Bereit / Ready</span>
+          <strong id="readyCount">0</strong>
+        </article>
+        <article>
+          <span>In Arbeit / In progress</span>
+          <strong id="activeOrders">0</strong>
+        </article>
+        <article>
+          <span>Ø Wartezeit / Avg. wait</span>
+          <strong id="avgReady">-</strong>
+        </article>
+      </section>
+
+      <section class="pickup-board" aria-live="polite" aria-label="Ready order numbers">
+        <div class="pickup-label">Bestellnummern / Order numbers</div>
+        <div id="ready" class="pickup-number-grid"></div>
+      </section>
+    </main>
+
+    <footer class="pickup-footer">
+      <span>Wenn Ihre Nummer nicht mehr sichtbar ist, fragen Sie bitte unser Team.<br>If your number is no longer visible, please ask our team.</span>
+      <span id="autoHideInfo">Anzeige aktualisiert automatisch. / Display updates automatically.</span>
+    </footer>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/display.js"></script>
+</body>
+</html>
+`;
+
+const DISPLAY_JS = `const socket = io();
+const { fetchJson, escapeHtml, toast } = window.OrderApp;
+
+const els = {
+  ready: document.getElementById('ready'),
+  avgReady: document.getElementById('avgReady'),
+  activeOrders: document.getElementById('activeOrders'),
+  readyCount: document.getElementById('readyCount'),
+  soundToggle: document.getElementById('soundToggle'),
+  testSound: document.getElementById('testSound'),
+  fullscreenButton: document.getElementById('fullscreenButton'),
+  autoHideInfo: document.getElementById('autoHideInfo')
+};
+
+let initialized = false;
+let knownReadyIds = new Set();
+let currentReadyOrders = [];
+let soundEnabled = localStorage.getItem('pickupDisplaySoundEnabled') === '1';
+let audioContext = null;
+let reloadTimer = null;
+
+let displaySettings = {
+  displayAutoHideMinutes: 10,
+  displayMaxReadyNumbers: 8,
+  displayRefreshSeconds: 15,
+  displayShowMetrics: true,
+  displaySoundVolume: 70,
+  displayBilingual: true
+};
+
+function minuteLabel(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+  const n = Number(value);
+  return (Number.isInteger(n) ? n : n.toFixed(1)) + ' min';
+}
+
+function updateSoundButton() {
+  els.soundToggle.textContent = soundEnabled ? 'Ton aktiv / Sound on' : 'Ton aktivieren / Enable sound';
+  els.soundToggle.classList.toggle('active', soundEnabled);
+}
+
+function ensureAudio() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioCtx) return null;
+
+  if (!audioContext) audioContext = new AudioCtx();
+
+  if (audioContext.state === 'suspended') audioContext.resume();
+
+  return audioContext;
+}
+
+function playBellTone(force = false) {
+  if (!soundEnabled && !force) return;
+
+  const ctx = ensureAudio();
+
+  if (!ctx) return;
+
+  const volume = Math.max(0, Math.min(1, Number(displaySettings.displaySoundVolume || 70) / 100));
+  const notes = [784, 1046.5, 659.25];
+
+  notes.forEach((frequency, index) => {
+    const start = ctx.currentTime + index * 0.18;
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequency, start);
+
+    const peak = (index === 1 ? 0.18 : 0.12) * volume;
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), start + 0.035);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.62);
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.start(start);
+    oscillator.stop(start + 0.68);
+  });
+}
+
+function scheduleAutoReload() {
+  window.clearTimeout(reloadTimer);
+
+  const seconds = Math.max(5, Math.min(120, Number(displaySettings.displayRefreshSeconds || 15)));
+
+  reloadTimer = window.setTimeout(() => {
+    loadDisplay().catch((error) => toast(error.message, 'error'));
+  }, seconds * 1000);
+}
+
+function applyDisplaySettings(settings) {
+  displaySettings = { ...displaySettings, ...(settings || {}) };
+
+  document.body.dataset.showMetrics = displaySettings.displayShowMetrics === false ? 'false' : 'true';
+  document.body.classList.toggle('single-language-display', displaySettings.displayBilingual === false);
+
+  const minutes = Number(displaySettings.displayAutoHideMinutes || 0);
+
+  if (minutes > 0) {
+    els.autoHideInfo.innerHTML =
+      'Nummern werden ca. ' + escapeHtml(minutes) + ' Minuten angezeigt.<br>' +
+      'Numbers are shown for about ' + escapeHtml(minutes) + ' minutes.';
+  } else {
+    els.autoHideInfo.innerHTML =
+      'Nummern bleiben sichtbar, bis sie intern entfernt werden.<br>' +
+      'Numbers remain visible until removed internally.';
+  }
+}
+
+async function loadDisplay() {
+  const data = await fetchJson('/api/display');
+  const metrics = data.metrics || {};
+
+  applyDisplaySettings(data.settings || (data.display ? data.display.settings : null));
+
+  currentReadyOrders = data.ready || [];
+
+  els.avgReady.textContent = minuteLabel(metrics.averageReadyMinutes);
+  els.activeOrders.textContent = metrics.activeOrderCount ?? 0;
+  els.readyCount.textContent = currentReadyOrders.length;
+
+  document.body.dataset.readyCount = String(currentReadyOrders.length);
+
+  const currentIds = new Set(currentReadyOrders.map((order) => order.id));
+  const newReadyOrders = currentReadyOrders.filter((order) => !knownReadyIds.has(order.id));
+
+  if (initialized && newReadyOrders.length > 0) {
+    playBellTone();
+  }
+
+  initialized = true;
+  knownReadyIds = currentIds;
+
+  renderReadyNumbers();
+  scheduleAutoReload();
+}
+
+function renderReadyNumbers() {
+  if (!currentReadyOrders.length) {
+    els.ready.innerHTML =
+      '<div class="pickup-empty">' +
+        '<strong>Willkommen<br><span>Welcome</span></strong>' +
+        '<span>Fertige Bestellnummern erscheinen hier.<br>Ready order numbers will appear here.</span>' +
+      '</div>';
+    return;
+  }
+
+  els.ready.innerHTML = currentReadyOrders.map((order) => (
+    '<article class="pickup-number-card">' +
+      '<div class="pickup-number">' + escapeHtml(order.number) + '</div>' +
+      '<div class="pickup-number-meta">Jetzt abholbereit / Ready now</div>' +
+    '</article>'
+  )).join('');
+}
+
+els.soundToggle.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('pickupDisplaySoundEnabled', soundEnabled ? '1' : '0');
+  updateSoundButton();
+
+  if (soundEnabled) {
+    ensureAudio();
+    playBellTone(true);
+    toast('Ton aktiviert / Sound enabled');
+  } else {
+    toast('Ton deaktiviert / Sound disabled');
+  }
+});
+
+els.testSound.addEventListener('click', () => {
+  ensureAudio();
+  playBellTone(true);
+});
+
+els.fullscreenButton.addEventListener('click', async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      els.fullscreenButton.textContent = 'Vollbild beenden / Exit fullscreen';
+    } else {
+      await document.exitFullscreen();
+      els.fullscreenButton.textContent = 'Vollbild / Fullscreen';
+    }
+  } catch (error) {
+    toast('Vollbild nicht verfügbar / Fullscreen is not available', 'error');
+  }
+});
+
+document.addEventListener('fullscreenchange', () => {
+  els.fullscreenButton.textContent = document.fullscreenElement ? 'Vollbild beenden / Exit fullscreen' : 'Vollbild / Fullscreen';
+});
+
+socket.on('orders:changed', loadDisplay);
+socket.on('settings:changed', loadDisplay);
+
+updateSoundButton();
+loadDisplay().catch((error) => toast(error.message, 'error'));
+`;
+
+const SETTINGS_HTML = `<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Einstellungen · Messe Supermarkt</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-mark">E</div>
+        <div>
+          <h1>Einstellungen</h1>
+          <p>Anzeige, Wartezeit und Systemverhalten anpassen</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="/">Start</a>
+        <a href="/dashboard.html">Dashboard</a>
+        <a href="/display.html">Abholanzeige</a>
+      </nav>
+    </header>
+
+    <main class="settings-layout">
+      <section class="panel settings-panel">
+        <h2>Abholanzeige</h2>
+        <p class="muted">Diese Einstellungen gelten zentral für alle Geräte, die die Abholanzeige öffnen.</p>
+
+        <div class="settings-grid">
+          <label>Nummern automatisch ausblenden nach Minuten
+            <input id="displayAutoHideMinutes" type="number" min="0" max="120" step="1" />
+            <small>0 = nicht automatisch ausblenden. Empfehlung: 10 Minuten.</small>
+          </label>
+
+          <label>Maximal sichtbare Nummern
+            <input id="displayMaxReadyNumbers" type="number" min="1" max="24" step="1" />
+            <small>Empfehlung: 8. Mehr Nummern werden kleiner dargestellt.</small>
+          </label>
+
+          <label>Anzeige aktualisieren alle Sekunden
+            <input id="displayRefreshSeconds" type="number" min="5" max="120" step="1" />
+            <small>Empfehlung: 15 Sekunden.</small>
+          </label>
+
+          <label>Ton-Lautstärke in Prozent
+            <input id="displaySoundVolume" type="number" min="0" max="100" step="5" />
+            <small>Wird nur genutzt, wenn Ton im Browser aktiviert wurde.</small>
+          </label>
+
+          <label class="checkbox-line">
+            <input id="displayShowMetrics" type="checkbox" />
+            <span>Status-Kacheln auf der Abholanzeige zeigen</span>
+          </label>
+
+          <label class="checkbox-line">
+            <input id="displayBilingual" type="checkbox" />
+            <span>Deutsch und Englisch anzeigen</span>
+          </label>
+        </div>
+
+        <div class="actions settings-actions">
+          <button id="saveSettings" class="btn-green" type="button">Speichern</button>
+          <button id="resetDefaults" class="btn-dark" type="button">Standardwerte einsetzen</button>
+        </div>
+      </section>
+
+      <section class="panel settings-panel">
+        <h2>Sinnvolle Standardwerte</h2>
+
+        <div class="settings-hints">
+          <article>
+            <strong>10 Minuten sichtbar</strong>
+            <span>Guter Start für Messebetrieb. Die Bestellung wird danach nur ausgeblendet, aber nicht als abgeholt markiert.</span>
+          </article>
+
+          <article>
+            <strong>8 Nummern maximal</strong>
+            <span>Damit die Anzeige groß bleibt und Kunden es aus Entfernung lesen können.</span>
+          </article>
+
+          <article>
+            <strong>Dashboard bleibt intern</strong>
+            <span>Ausgeblendete Nummern bleiben im Dashboard sichtbar. Dort kann man „Wieder anzeigen“ oder „Abgeholt“ drücken.</span>
+          </article>
+
+          <article>
+            <strong>Ton immer einmal aktivieren</strong>
+            <span>Browser spielen Ton erst ab, nachdem man auf „Ton aktivieren“ geklickt hat.</span>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/settings.js"></script>
+</body>
+</html>
+`;
+
+const SETTINGS_JS = `const socket = io();
+const { fetchJson, toast } = window.OrderApp;
+
+const DEFAULTS = {
+  displayAutoHideMinutes: 10,
+  displayMaxReadyNumbers: 8,
+  displayRefreshSeconds: 15,
+  displayShowMetrics: true,
+  displaySoundVolume: 70,
+  displayBilingual: true
+};
+
+const els = {
+  displayAutoHideMinutes: document.getElementById('displayAutoHideMinutes'),
+  displayMaxReadyNumbers: document.getElementById('displayMaxReadyNumbers'),
+  displayRefreshSeconds: document.getElementById('displayRefreshSeconds'),
+  displayShowMetrics: document.getElementById('displayShowMetrics'),
+  displaySoundVolume: document.getElementById('displaySoundVolume'),
+  displayBilingual: document.getElementById('displayBilingual'),
+  saveSettings: document.getElementById('saveSettings'),
+  resetDefaults: document.getElementById('resetDefaults')
+};
+
+function apply(settings) {
+  const data = { ...DEFAULTS, ...(settings || {}) };
+
+  els.displayAutoHideMinutes.value = data.displayAutoHideMinutes;
+  els.displayMaxReadyNumbers.value = data.displayMaxReadyNumbers;
+  els.displayRefreshSeconds.value = data.displayRefreshSeconds;
+  els.displayShowMetrics.checked = data.displayShowMetrics !== false;
+  els.displaySoundVolume.value = data.displaySoundVolume;
+  els.displayBilingual.checked = data.displayBilingual !== false;
+}
+
+function readForm() {
+  return {
+    displayAutoHideMinutes: Number(els.displayAutoHideMinutes.value),
+    displayMaxReadyNumbers: Number(els.displayMaxReadyNumbers.value),
+    displayRefreshSeconds: Number(els.displayRefreshSeconds.value),
+    displayShowMetrics: Boolean(els.displayShowMetrics.checked),
+    displaySoundVolume: Number(els.displaySoundVolume.value),
+    displayBilingual: Boolean(els.displayBilingual.checked)
+  };
+}
+
+async function loadSettings() {
+  const settings = await fetchJson('/api/settings');
+  apply(settings);
+}
+
+async function saveSettings() {
+  try {
+    const saved = await fetchJson('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify(readForm())
+    });
+
+    apply(saved);
+    toast('Einstellungen gespeichert');
+  } catch (error) {
+    toast(error.message, 'error');
+  }
+}
+
+els.saveSettings.addEventListener('click', saveSettings);
+els.resetDefaults.addEventListener('click', () => apply(DEFAULTS));
+
+socket.on('settings:changed', loadSettings);
+
+loadSettings().catch((error) => toast(error.message, 'error'));
+`;
+
+const CSS = `
+
+/* ------------------------------------------------------------
+   Einstellungen V7 + zweisprachige Abholanzeige
+   ------------------------------------------------------------ */
+
+.pickup-display-v7 .pickup-header h1 {
+  display: grid;
+  gap: clamp(4px, .7vh, 10px);
+}
+
+.pickup-display-v7 .pickup-header h1 span:last-child {
+  color: rgba(247,244,238,.72);
+  font-size: .52em;
+  letter-spacing: -.045em;
+}
+
+.pickup-display-v7.single-language-display .pickup-header h1 span:last-child,
+.pickup-display-v7.single-language-display .pickup-header p br,
+.pickup-display-v7.single-language-display .pickup-footer br,
+.pickup-display-v7.single-language-display .pickup-empty strong span,
+.pickup-display-v7.single-language-display .pickup-empty span br {
+  display: none;
+}
+
+.pickup-display-v7[data-show-metrics="false"] .pickup-status-row {
+  display: none;
+}
+
+.pickup-display-v7[data-show-metrics="false"] .pickup-main {
+  grid-template-rows: 1fr;
+}
+
+.pickup-display-v7 .pickup-controls a.button {
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  color: #fff;
+  background: rgba(255,255,255,.075);
+  padding: 12px 16px;
+  font-weight: 950;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.settings-grid label small {
+  color: var(--chalk-soft);
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.checkbox-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.checkbox-line input {
+  width: 24px;
+  height: 24px;
+}
+
+.settings-actions {
+  margin-top: 18px;
+}
+
+.settings-hints {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-hints article {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.settings-hints strong {
+  display: block;
+  color: var(--yellow);
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.settings-hints span {
+  display: block;
+  color: var(--chalk-soft);
+  line-height: 1.45;
+}
+
+@media (max-width: 1000px) {
+  .settings-layout,
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+`;
+
+function patchServer() {
+  let s = read('server.js');
+
+  if (!s.includes('const DEFAULT_APP_SETTINGS =')) {
+    const marker = "const DB_FILE = path.join(DATA_DIR, 'db.json');";
+    s = replaceOnce(s, marker, marker + '\n' + DEFAULT_SETTINGS_BLOCK, 'DEFAULT_APP_SETTINGS');
+  }
+
+  if (!s.includes('settings: { ...DEFAULT_APP_SETTINGS }')) {
+    s = s.replace(
+      '      products: DEFAULT_PRODUCTS,\n      orders: []',
+      '      products: DEFAULT_PRODUCTS,\n      settings: { ...DEFAULT_APP_SETTINGS },\n      orders: []'
+    );
+  }
+
+  if (!s.includes('const normalizedSettings = normalizeAppSettings(db.settings);')) {
+    const marker = "  if (!Array.isArray(db.orders)) { db.orders = []; changed = true; }\n\n";
+    const insertion =
+      "  if (!db.settings || typeof db.settings !== 'object') { db.settings = { ...DEFAULT_APP_SETTINGS }; changed = true; }\n" +
+      "  const normalizedSettings = normalizeAppSettings(db.settings);\n" +
+      "  if (JSON.stringify(db.settings) !== JSON.stringify(normalizedSettings)) { db.settings = normalizedSettings; changed = true; }\n\n";
+
+    s = replaceOnce(s, marker, marker + insertion, 'settings migration');
+  }
+
+  const start = s.indexOf('function autoHideExpiredDisplayOrders');
+  const end = s.indexOf('function productPayload', start);
+
+  if (start === -1 || end === -1) {
+    throw new Error('Konnte Display-Funktionsblock in server.js nicht finden. Wurde V6 schon ausgefuehrt?');
+  }
+
+  s = s.slice(0, start) + DISPLAY_FUNCTIONS_V7 + '\n' + s.slice(end);
+
+  if (!s.includes("app.get('/api/settings'")) {
+    const routes = `
+app.get('/api/settings', (req, res) => {
+  res.json(getAppSettings());
+});
+
+app.put('/api/settings', (req, res) => {
+  try {
+    const settings = updateAppSettings(req.body || {});
+    io.emit('settings:changed');
+    broadcast();
+    res.json(settings);
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+`;
+
+    s = insertBefore(s, "app.get('/api/dashboard', (req, res) => res.json(buildDashboard()));", routes, 'settings routes');
+  }
+
+  write('server.js', s);
+}
+
+function patchDisplay() {
+  write('public/display.html', DISPLAY_HTML);
+  write('public/display.js', DISPLAY_JS);
+}
+
+function patchSettingsPage() {
+  write('public/settings.html', SETTINGS_HTML);
+  write('public/settings.js', SETTINGS_JS);
+}
+
+function addNavLink(html, beforeText) {
+  if (html.includes('/settings.html')) return html;
+
+  if (html.includes(beforeText)) {
+    return html.replace(beforeText, '<a href="/settings.html">Einstellungen</a>\n        ' + beforeText);
+  }
+
+  return html.replace('</nav>', '        <a href="/settings.html">Einstellungen</a>\n      </nav>');
+}
+
+function patchNavs() {
+  if (exists('public/index.html')) {
+    let index = read('public/index.html');
+    index = addNavLink(index, '<a href="/display.html">Abholanzeige</a>');
+    write('public/index.html', index);
+  }
+
+  if (exists('public/dashboard.html')) {
+    let dashboard = read('public/dashboard.html');
+    dashboard = addNavLink(dashboard, '<a href="/api/export/orders.csv">CSV Export</a>');
+    write('public/dashboard.html', dashboard);
+  }
+}
+
+function patchStyles() {
+  let s = read('public/styles.css');
+
+  if (!s.includes('Einstellungen V7 + zweisprachige Abholanzeige')) {
+    s += CSS;
+  }
+
+  write('public/styles.css', s);
+}
+
+function main() {
+  for (const target of TARGETS) assertFile(target);
+
+  const backupDir = backupFiles();
+
+  patchServer();
+  patchDisplay();
+  patchSettingsPage();
+  patchNavs();
+  patchStyles();
+
+  console.log('Fertig: V7 Einstellungen und zweisprachige Abholanzeige wurden eingetragen.');
+  console.log('Backup erstellt in: ' + backupDir);
+  console.log('Danach Server neu starten und /display.html sowie /settings.html mit Strg+F5 neu laden.');
+}
+
+main();
