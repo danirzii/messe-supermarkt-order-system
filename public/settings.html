@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Einstellungen · Messe Supermarkt</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-mark">E</div>
+        <div>
+          <h1>Einstellungen</h1>
+          <p>Anzeige, Wartezeit und Systemverhalten anpassen</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="/">Start</a>
+        <a href="/dashboard.html">Dashboard</a>
+        <a href="/display.html">Abholanzeige</a>
+      </nav>
+    </header>
+
+    <main class="settings-layout">
+      <section class="panel settings-panel">
+        <h2>Abholanzeige</h2>
+        <p class="muted">Diese Einstellungen gelten zentral für alle Geräte, die die Abholanzeige öffnen.</p>
+
+        <div class="settings-grid">
+          <label>Nummern automatisch ausblenden nach Minuten
+            <input id="displayAutoHideMinutes" type="number" min="0" max="120" step="1" />
+            <small>0 = nicht automatisch ausblenden. Empfehlung: 10 Minuten.</small>
+          </label>
+
+          <label>Maximal sichtbare Nummern
+            <input id="displayMaxReadyNumbers" type="number" min="1" max="24" step="1" />
+            <small>Empfehlung: 8. Mehr Nummern werden kleiner dargestellt.</small>
+          </label>
+
+          <label>Anzeige aktualisieren alle Sekunden
+            <input id="displayRefreshSeconds" type="number" min="5" max="120" step="1" />
+            <small>Empfehlung: 15 Sekunden.</small>
+          </label>
+
+          <label>Ton-Lautstärke in Prozent
+            <input id="displaySoundVolume" type="number" min="0" max="100" step="5" />
+            <small>Wird nur genutzt, wenn Ton im Browser aktiviert wurde.</small>
+          </label>
+
+          <label class="checkbox-line">
+            <input id="displayShowMetrics" type="checkbox" />
+            <span>Status-Kacheln auf der Abholanzeige zeigen</span>
+          </label>
+
+          <label class="checkbox-line">
+            <input id="displayBilingual" type="checkbox" />
+            <span>Deutsch und Englisch anzeigen</span>
+          </label>
+        </div>
+
+        <div class="actions settings-actions">
+          <button id="saveSettings" class="btn-green" type="button">Speichern</button>
+          <button id="resetDefaults" class="btn-dark" type="button">Standardwerte einsetzen</button>
+        </div>
+      </section>
+
+      <section class="panel settings-panel">
+        <h2>Sinnvolle Standardwerte</h2>
+
+        <div class="settings-hints">
+          <article>
+            <strong>10 Minuten sichtbar</strong>
+            <span>Guter Start für Messebetrieb. Die Bestellung wird danach nur ausgeblendet, aber nicht als abgeholt markiert.</span>
+          </article>
+
+          <article>
+            <strong>8 Nummern maximal</strong>
+            <span>Damit die Anzeige groß bleibt und Kunden es aus Entfernung lesen können.</span>
+          </article>
+
+          <article>
+            <strong>Dashboard bleibt intern</strong>
+            <span>Ausgeblendete Nummern bleiben im Dashboard sichtbar. Dort kann man „Wieder anzeigen“ oder „Abgeholt“ drücken.</span>
+          </article>
+
+          <article>
+            <strong>Ton immer einmal aktivieren</strong>
+            <span>Browser spielen Ton erst ab, nachdem man auf „Ton aktivieren“ geklickt hat.</span>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/settings.js"></script>
+</body>
+</html>

@@ -62,10 +62,12 @@ function renderDashboard(data) {
     `).join('')
     : '<tr><td colspan="3">Noch keine Kassenumsatzdaten.</td></tr>';
 
+  const display = data.display || {};
   const statusRows = [
     ['Offen', data.statusCounts.open || 0],
     ['In Arbeit', data.statusCounts.in_production || 0],
-    ['Abholbereit', data.statusCounts.ready || 0],
+    ['Abholbereit sichtbar', display.visibleReadyCount ?? (data.statusCounts.ready || 0)],
+    ['Abholbereit ausgeblendet', display.hiddenReadyCount ?? 0],
     ['Abgeholt', data.statusCounts.completed || 0],
     ['Storniert', data.statusCounts.cancelled || 0],
     ['Älteste aktive Bestellung', minuteLabel(metrics.oldestActiveMinutes)]
@@ -154,36 +156,40 @@ function renderTimeline(rows) {
   `;
 }
 
+function readyDisplayLabel(order) {
+  if (order.status !== 'ready') return statusLabel(order.status);
+  return order.displayHiddenAt ? 'Fertig · ausgeblendet' : 'Fertig · sichtbar';
+}
+
 function renderOrderRow(order) {
   const canComplete = order.status === 'ready';
+  const canReannounce = order.status === 'ready' && order.displayHiddenAt;
   const canCancel = !['cancelled', 'completed'].includes(order.status);
   const readyMinutes = minutesBetween(order.createdAt, order.readyAt);
   const totalMinutes = minutesBetween(order.createdAt, order.completedAt);
   const timing = order.status === 'completed'
     ? minuteLabel(totalMinutes)
     : order.status === 'ready'
-      ? `${minuteLabel(readyMinutes)} bis fertig`
+      ? minuteLabel(readyMinutes) + ' bis fertig'
       : '-';
 
-  return `
-    <tr>
-      <td><strong>#${order.number}</strong></td>
-      <td>${escapeHtml(order.registerName || '')}</td>
-      <td><span class="badge ${badgeClass(order.status)}">${statusLabel(order.status)}</span></td>
-      <td>${euro(order.total)}</td>
-      <td>${timing}</td>
-      <td>
-        <div class="actions compact-actions">
-          <a class="button btn-dark" href="/receipt.html?orderId=${encodeURIComponent(order.id)}" target="_blank">Bon</a>
-          ${canComplete ? `<button class="btn-green" data-action="complete" data-id="${escapeHtml(order.id)}">Abgeholt</button>` : ''}
-          ${canCancel ? `<button class="btn-red" data-action="cancel" data-id="${escapeHtml(order.id)}">Storno</button>` : ''}
-        </div>
-      </td>
-    </tr>
-  `;
+  return '<tr>' +
+    '<td><strong>#' + escapeHtml(order.number) + '</strong></td>' +
+    '<td>' + escapeHtml(order.registerName || '') + '</td>' +
+    '<td><span class="badge ' + badgeClass(order.status, order) + '">' + escapeHtml(readyDisplayLabel(order)) + '</span></td>' +
+    '<td>' + euro(order.total) + '</td>' +
+    '<td>' + timing + '</td>' +
+    '<td><div class="actions compact-actions">' +
+      '<a class="button btn-dark" href="/receipt.html?orderId=' + encodeURIComponent(order.id) + '" target="_blank">Bon</a>' +
+      (canReannounce ? '<button class="btn-blue" data-action="reannounce" data-id="' + escapeHtml(order.id) + '">Wieder anzeigen</button>' : '') +
+      (canComplete ? '<button class="btn-green" data-action="complete" data-id="' + escapeHtml(order.id) + '">Abgeholt</button>' : '') +
+      (canCancel ? '<button class="btn-red" data-action="cancel" data-id="' + escapeHtml(order.id) + '">Storno</button>' : '') +
+    '</div></td>' +
+  '</tr>';
 }
 
-function badgeClass(status) {
+function badgeClass(status, order = {}) {
+  if (status === 'ready' && order.displayHiddenAt) return 'orange';
   if (status === 'ready') return 'green';
   if (status === 'cancelled') return 'red';
   if (status === 'in_production') return 'blue';
@@ -198,6 +204,12 @@ async function runOrderAction(action, orderId) {
       await fetchJson(`/api/orders/${encodeURIComponent(orderId)}/cancel`, {
         method: 'POST',
         body: JSON.stringify({ reason })
+      });
+    }
+    if (action === 'reannounce') {
+      await fetchJson(`/api/orders/${encodeURIComponent(orderId)}/reannounce`, {
+        method: 'POST',
+        body: JSON.stringify({})
       });
     }
     if (action === 'complete') {

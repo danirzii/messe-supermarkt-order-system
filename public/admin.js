@@ -8,6 +8,7 @@ const els = {
   newCategory: document.getElementById('newCategory'),
   newStation: document.getElementById('newStation'),
   newPrice: document.getElementById('newPrice'),
+  newCashierCode: document.getElementById('newCashierCode'),
   newImage: document.getElementById('newImage'),
   addProduct: document.getElementById('addProduct'),
   reload: document.getElementById('reload')
@@ -33,6 +34,7 @@ function renderProducts() {
         <option value="coffee" ${product.stationGroup === 'coffee' ? 'selected' : ''}>Kaffee & Getränke</option>
       </select>
       <input data-field="price" type="number" min="0" step="0.01" value="${Number(product.price).toFixed(2)}" />
+      <input data-field="cashierCode" placeholder="Artikelnummer" inputmode="numeric" value="${escapeHtml(product.cashierCode || '')}" />
       <input data-field="image" placeholder="/assets/products/.." value="${escapeHtml(product.image || '')}" />
       <div class="actions">
         <select data-field="active">
@@ -56,6 +58,7 @@ function readRow(row) {
     category: value('category'),
     stationGroup: value('stationGroup'),
     price: Number(value('price')),
+    cashierCode: value('cashierCode'),
     image: value('image'),
     active: value('active') === 'true'
   };
@@ -83,6 +86,7 @@ async function addProduct() {
         category: els.newCategory.value || (els.newStation.value === 'coffee' ? 'Kaffee' : 'Heißtheke'),
         stationGroup: els.newStation.value,
         price: Number(els.newPrice.value),
+        cashierCode: els.newCashierCode.value,
         image: els.newImage.value,
         active: true
       })
@@ -90,6 +94,7 @@ async function addProduct() {
     els.newName.value = '';
     els.newCategory.value = '';
     els.newPrice.value = '';
+    els.newCashierCode.value = '';
     els.newImage.value = '';
     toast(`${product.name} hinzugefügt`);
     await loadProducts();

@@ -3,46 +3,61 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Abholanzeige · Messe Supermarkt</title>
+  <title>Abholanzeige · Pickup Display · Messe Supermarkt</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body class="display-body">
-  <div class="display-wrap">
-    <header class="topbar display-topbar">
-      <div class="brand">
-        <div class="logo-mark">M</div>
+<body class="display-body pickup-display-v6 pickup-display-v7" data-ready-count="0" data-show-metrics="true">
+  <div class="pickup-shell">
+    <header class="pickup-header">
+      <div class="pickup-brand">
+        <div class="pickup-wordmark">
+          <span>Messe</span>
+          <span>Supermarkt</span>
+        </div>
+        <div class="pickup-divider"></div>
         <div>
-          <h1>Abholung</h1>
-          <p>Kunden sehen hier nur fertige Bestellnummern</p>
+          <h1>
+            <span>Abholbereit</span>
+            <span>Ready for pickup</span>
+          </h1>
+          <p>Bitte holen Sie Ihre Bestellung an der Theke ab.<br>Please collect your order at the counter.</p>
         </div>
       </div>
-      <nav class="nav no-print">
-        <button id="soundToggle" type="button">Ton aktivieren</button>
-        <button id="staffToggle" type="button">Bedienmodus</button>
-        <a href="/dashboard.html">Dashboard</a>
-      </nav>
+
+      <div class="pickup-controls no-print">
+        <button id="soundToggle" type="button">Ton aktivieren / Enable sound</button>
+        <button id="testSound" type="button">Ton testen / Test sound</button>
+        <button id="fullscreenButton" type="button">Vollbild / Fullscreen</button>
+        <a href="/settings.html" class="button">Einstellungen</a>
+      </div>
     </header>
 
-    <main>
-      <section class="display-metrics" aria-label="Wartezeit und Status">
-        <article><span>Ø bis fertig</span><strong id="avgReady">-</strong></article>
-        <article><span>Aktiv</span><strong id="activeOrders">0</strong></article>
-        <article><span>Fertig</span><strong id="readyCount">0</strong></article>
+    <main class="pickup-main">
+      <section class="pickup-status-row" aria-label="Pickup status">
+        <article>
+          <span>Bereit / Ready</span>
+          <strong id="readyCount">0</strong>
+        </article>
+        <article>
+          <span>In Arbeit / In progress</span>
+          <strong id="activeOrders">0</strong>
+        </article>
+        <article>
+          <span>Ø Wartezeit / Avg. wait</span>
+          <strong id="avgReady">-</strong>
+        </article>
       </section>
 
-      <h2 class="display-title">Bitte Nummer beachten</h2>
-      <div id="ready" class="ready-grid"></div>
-
-      <section id="staffPanel" class="staff-panel no-print" hidden>
-        <div>
-          <strong>Bedienmodus</strong>
-          <span class="muted">Hier können fertige Nummern von der Anzeige entfernt werden. Das zählt als abgeholt.</span>
-        </div>
-        <button id="clearAllReady" type="button" class="btn-red">Alle fertigen Nummern entfernen</button>
+      <section class="pickup-board" aria-live="polite" aria-label="Ready order numbers">
+        <div class="pickup-label">Bestellnummern / Order numbers</div>
+        <div id="ready" class="pickup-number-grid"></div>
       </section>
     </main>
 
-    <footer style="text-align:center;" class="muted">Wenn deine Nummer erscheint, ist die Bestellung abholbereit.</footer>
+    <footer class="pickup-footer">
+      <span>Wenn Ihre Nummer nicht mehr sichtbar ist, fragen Sie bitte unser Team.<br>If your number is no longer visible, please ask our team.</span>
+      <span id="autoHideInfo">Anzeige aktualisiert automatisch. / Display updates automatically.</span>
+    </footer>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

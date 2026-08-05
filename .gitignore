@@ -5,3 +5,21 @@ dist/
 .cache/
 .vite/
 npm-debug.log*
+cd ~/order-software
+
+cat >> .gitignore <<'EOF'
+
+# lokale Backups und Test-Patches
+backup-before-*/
+*.backup-before-*
+*.kaputt-backup-*
+fix-*.js
+patch-*.js
+
+# lokale Daten / Abschlüsse
+data/closures/
+data/db-backup-*.json
+
+# lokale npm config
+.npmrc
+EOF

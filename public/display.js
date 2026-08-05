@@ -7,156 +7,196 @@ const els = {
   activeOrders: document.getElementById('activeOrders'),
   readyCount: document.getElementById('readyCount'),
   soundToggle: document.getElementById('soundToggle'),
-  staffToggle: document.getElementById('staffToggle'),
-  staffPanel: document.getElementById('staffPanel'),
-  clearAllReady: document.getElementById('clearAllReady')
+  testSound: document.getElementById('testSound'),
+  fullscreenButton: document.getElementById('fullscreenButton'),
+  autoHideInfo: document.getElementById('autoHideInfo')
 };
 
 let initialized = false;
 let knownReadyIds = new Set();
 let currentReadyOrders = [];
-let soundEnabled = localStorage.getItem('displaySoundEnabled') === '1';
+let soundEnabled = localStorage.getItem('pickupDisplaySoundEnabled') === '1';
 let audioContext = null;
+let reloadTimer = null;
+
+let displaySettings = {
+  displayAutoHideMinutes: 10,
+  displayMaxReadyNumbers: 8,
+  displayRefreshSeconds: 15,
+  displayShowMetrics: true,
+  displaySoundVolume: 70,
+  displayBilingual: true
+};
 
 function minuteLabel(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
   const n = Number(value);
-  return `${Number.isInteger(n) ? n : n.toFixed(1)} min`;
+  return (Number.isInteger(n) ? n : n.toFixed(1)) + ' min';
 }
 
 function updateSoundButton() {
-  els.soundToggle.textContent = soundEnabled ? 'Ton ist aktiv' : 'Ton aktivieren';
-  els.soundToggle.classList.toggle('btn-green', soundEnabled);
+  els.soundToggle.textContent = soundEnabled ? 'Ton aktiv / Sound on' : 'Ton aktivieren / Enable sound';
+  els.soundToggle.classList.toggle('active', soundEnabled);
 }
 
 function ensureAudio() {
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
   if (!AudioCtx) return null;
+
   if (!audioContext) audioContext = new AudioCtx();
+
   if (audioContext.state === 'suspended') audioContext.resume();
+
   return audioContext;
 }
 
-function playToneSequence(count = 1) {
-  if (!soundEnabled) return;
+function playBellTone(force = false) {
+  if (!soundEnabled && !force) return;
+
   const ctx = ensureAudio();
+
   if (!ctx) return;
 
-  const tones = Math.min(Math.max(count, 1), 3);
-  for (let i = 0; i < tones; i += 1) {
-    const start = ctx.currentTime + i * 0.22;
+  const volume = Math.max(0, Math.min(1, Number(displaySettings.displaySoundVolume || 70) / 100));
+  const notes = [784, 1046.5, 659.25];
+
+  notes.forEach((frequency, index) => {
+    const start = ctx.currentTime + index * 0.18;
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
 
     oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, start);
-    oscillator.frequency.exponentialRampToValueAtTime(1320, start + 0.12);
+    oscillator.frequency.setValueAtTime(frequency, start);
+
+    const peak = (index === 1 ? 0.18 : 0.12) * volume;
+
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), start + 0.035);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.62);
 
     oscillator.connect(gain);
     gain.connect(ctx.destination);
+
     oscillator.start(start);
-    oscillator.stop(start + 0.2);
+    oscillator.stop(start + 0.68);
+  });
+}
+
+function scheduleAutoReload() {
+  window.clearTimeout(reloadTimer);
+
+  const seconds = Math.max(5, Math.min(120, Number(displaySettings.displayRefreshSeconds || 15)));
+
+  reloadTimer = window.setTimeout(() => {
+    loadDisplay().catch((error) => toast(error.message, 'error'));
+  }, seconds * 1000);
+}
+
+function applyDisplaySettings(settings) {
+  displaySettings = { ...displaySettings, ...(settings || {}) };
+
+  document.body.dataset.showMetrics = displaySettings.displayShowMetrics === false ? 'false' : 'true';
+  document.body.classList.toggle('single-language-display', displaySettings.displayBilingual === false);
+
+  const minutes = Number(displaySettings.displayAutoHideMinutes || 0);
+
+  if (minutes > 0) {
+    els.autoHideInfo.innerHTML =
+      'Nummern werden ca. ' + escapeHtml(minutes) + ' Minuten angezeigt.<br>' +
+      'Numbers are shown for about ' + escapeHtml(minutes) + ' minutes.';
+  } else {
+    els.autoHideInfo.innerHTML =
+      'Nummern bleiben sichtbar, bis sie intern entfernt werden.<br>' +
+      'Numbers remain visible until removed internally.';
   }
 }
 
 async function loadDisplay() {
   const data = await fetchJson('/api/display');
   const metrics = data.metrics || {};
+
+  applyDisplaySettings(data.settings || (data.display ? data.display.settings : null));
+
   currentReadyOrders = data.ready || [];
 
   els.avgReady.textContent = minuteLabel(metrics.averageReadyMinutes);
   els.activeOrders.textContent = metrics.activeOrderCount ?? 0;
-  els.readyCount.textContent = metrics.readyOrderCount ?? currentReadyOrders.length;
+  els.readyCount.textContent = currentReadyOrders.length;
+
+  document.body.dataset.readyCount = String(currentReadyOrders.length);
 
   const currentIds = new Set(currentReadyOrders.map((order) => order.id));
   const newReadyOrders = currentReadyOrders.filter((order) => !knownReadyIds.has(order.id));
 
   if (initialized && newReadyOrders.length > 0) {
-    playToneSequence(newReadyOrders.length);
+    playBellTone();
   }
+
   initialized = true;
   knownReadyIds = currentIds;
 
+  renderReadyNumbers();
+  scheduleAutoReload();
+}
+
+function renderReadyNumbers() {
   if (!currentReadyOrders.length) {
-    els.ready.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div><strong>Noch nichts fertig</strong><span class="muted">Bitte kurz warten.</span></div></div>';
+    els.ready.innerHTML =
+      '<div class="pickup-empty">' +
+        '<strong>Willkommen<br><span>Welcome</span></strong>' +
+        '<span>Fertige Bestellnummern erscheinen hier.<br>Ready order numbers will appear here.</span>' +
+      '</div>';
     return;
   }
 
-  els.ready.innerHTML = currentReadyOrders.map((order) => renderReadyOrder(order)).join('');
-  els.ready.querySelectorAll('button[data-action="clear-one"]').forEach((button) => {
-    button.addEventListener('click', () => clearOne(button.dataset.id));
-  });
+  els.ready.innerHTML = currentReadyOrders.map((order) => (
+    '<article class="pickup-number-card">' +
+      '<div class="pickup-number">' + escapeHtml(order.number) + '</div>' +
+      '<div class="pickup-number-meta">Jetzt abholbereit / Ready now</div>' +
+    '</article>'
+  )).join('');
 }
 
-function renderReadyOrder(order) {
-  return `
-    <article class="ready-number-card">
-      <div class="ready-number">#${order.number}</div>
-      <div class="ready-meta">
-        <span>${escapeHtml(order.registerName || '')}</span>
-        <span>Wartezeit: ${minuteLabel(order.waitMinutes)}</span>
-      </div>
-      <button class="ready-clear staff-only" data-action="clear-one" data-id="${escapeHtml(order.id)}" type="button">Entfernen</button>
-    </article>
-  `;
-}
-
-async function clearOne(orderId) {
-  try {
-    await fetchJson(`/api/orders/${encodeURIComponent(orderId)}/complete`, {
-      method: 'POST',
-      body: JSON.stringify({})
-    });
-    toast('Nummer entfernt');
-    await loadDisplay();
-  } catch (error) {
-    toast(error.message, 'error');
-    await loadDisplay();
-  }
-}
-
-async function clearAllReady() {
-  if (!currentReadyOrders.length) return;
-  const ok = window.confirm('Alle fertigen Nummern von der Anzeige entfernen? Das zählt als abgeholt.');
-  if (!ok) return;
-  try {
-    const result = await fetchJson('/api/display/clear-ready', {
-      method: 'POST',
-      body: JSON.stringify({})
-    });
-    toast(`${result.completedCount} Nummern entfernt`);
-    await loadDisplay();
-  } catch (error) {
-    toast(error.message, 'error');
-  }
-}
-
-function toggleStaffMode() {
-  document.body.classList.toggle('staff-mode');
-  const active = document.body.classList.contains('staff-mode');
-  els.staffPanel.hidden = !active;
-  els.staffToggle.textContent = active ? 'Bedienmodus aus' : 'Bedienmodus';
-}
-
-els.soundToggle.addEventListener('click', async () => {
+els.soundToggle.addEventListener('click', () => {
   soundEnabled = !soundEnabled;
-  localStorage.setItem('displaySoundEnabled', soundEnabled ? '1' : '0');
+  localStorage.setItem('pickupDisplaySoundEnabled', soundEnabled ? '1' : '0');
+  updateSoundButton();
+
   if (soundEnabled) {
     ensureAudio();
-    playToneSequence(1);
-    toast('Ton aktiviert');
+    playBellTone(true);
+    toast('Ton aktiviert / Sound enabled');
   } else {
-    toast('Ton deaktiviert');
+    toast('Ton deaktiviert / Sound disabled');
   }
-  updateSoundButton();
 });
 
-els.staffToggle.addEventListener('click', toggleStaffMode);
-els.clearAllReady.addEventListener('click', clearAllReady);
+els.testSound.addEventListener('click', () => {
+  ensureAudio();
+  playBellTone(true);
+});
+
+els.fullscreenButton.addEventListener('click', async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      els.fullscreenButton.textContent = 'Vollbild beenden / Exit fullscreen';
+    } else {
+      await document.exitFullscreen();
+      els.fullscreenButton.textContent = 'Vollbild / Fullscreen';
+    }
+  } catch (error) {
+    toast('Vollbild nicht verfügbar / Fullscreen is not available', 'error');
+  }
+});
+
+document.addEventListener('fullscreenchange', () => {
+  els.fullscreenButton.textContent = document.fullscreenElement ? 'Vollbild beenden / Exit fullscreen' : 'Vollbild / Fullscreen';
+});
 
 socket.on('orders:changed', loadDisplay);
+socket.on('settings:changed', loadDisplay);
+
 updateSoundButton();
 loadDisplay().catch((error) => toast(error.message, 'error'));
