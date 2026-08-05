@@ -1,4 +1,4 @@
-# Messe Supermarkt Order-System Pro v3
+# Messe Supermarkt Order-System Pro
 
 Lokales Bestell- und Stationssystem für Messe-/Supermarktbetrieb mit Kassen, zwei Heißtheken, Kaffee-Station, Abholanzeige, Tagesübersicht und Wartezeitmessung.
 
