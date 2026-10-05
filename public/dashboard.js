@@ -20,7 +20,7 @@ async function loadDashboard() {
 function minuteLabel(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
   const n = Number(value);
-  return `${Number.isInteger(n) ? n : n.toFixed(1)} min`;
+  return `${Number.isInteger(n) ? n : n.toFixed(1).replace('.', ',')} min`;
 }
 
 function minutesBetween(startIso, endIso) {
@@ -145,7 +145,7 @@ function renderTimeline(rows) {
         <line x1="${pad}" y1="${pad + plotH}" x2="${pad + plotW}" y2="${pad + plotH}"></line>
         <line x1="${pad}" y1="${pad + plotH / 2}" x2="${pad + plotW}" y2="${pad + plotH / 2}"></line>
         <text x="8" y="${pad + 6}">${max}</text>
-        <text x="8" y="${pad + plotH / 2 + 5}">${Math.round(max / 2)}</text>
+        ${max >= 2 ? `<text x="8" y="${pad + plotH / 2 + 5}">${Math.round(max / 2)}</text>` : ''}
         <text x="8" y="${pad + plotH + 5}">0</text>
       </g>
       <polygon class="chart-area" points="${area}"></polygon>

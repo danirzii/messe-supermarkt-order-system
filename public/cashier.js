@@ -21,8 +21,56 @@ const els = {
   successModal: document.getElementById('successModal'),
   modalNumber: document.getElementById('modalNumber'),
   printReceipt: document.getElementById('printReceipt'),
-  closeModal: document.getElementById('closeModal')
+  closeModal: document.getElementById('closeModal'),
+  picoStatus: document.getElementById('picoStatus'),
+  picoFallback: document.getElementById('picoFallback')
 };
+
+// Pico-Status dieser Kasse: null = unbekannt, sonst { online, disabled, queued, expired, ... }
+let pico = null;
+
+function picoNeedsManualEntry() {
+  // Nur wenn der Pico wirklich offline/aus ist, werden die Artikelnummern zum Selbsttippen gezeigt.
+  return Boolean(pico && (pico.disabled || !pico.online));
+}
+
+function renderPicoStatus() {
+  if (!els.picoStatus) return;
+  els.picoStatus.classList.remove('ok', 'bad');
+  if (!pico) {
+    els.picoStatus.textContent = 'Pico …';
+  } else if (pico.disabled) {
+    els.picoStatus.classList.add('bad');
+    els.picoStatus.textContent = 'Pico aus · manuell tippen';
+  } else if (pico.online) {
+    els.picoStatus.classList.add('ok');
+    els.picoStatus.textContent = pico.queued > 0 ? `Pico online · ${pico.queued} wartet` : 'Pico online';
+  } else {
+    els.picoStatus.classList.add('bad');
+    els.picoStatus.textContent = 'Pico offline';
+  }
+
+  if (els.picoFallback) {
+    const manual = picoNeedsManualEntry();
+    els.picoFallback.hidden = !manual;
+    if (manual) {
+      els.picoFallback.innerHTML = pico.disabled
+        ? '<strong>Pico ist für diese Kasse ausgeschaltet.</strong>Artikelnummern bitte selbst an der Kasse eintippen (siehe Warenkorb).'
+        : '<strong>Pico meldet sich nicht.</strong>Artikelnummern bitte selbst an der Kasse eintippen (siehe Warenkorb). Pico kurz aus- und wieder einstecken.';
+    }
+  }
+}
+
+async function refreshPicoStatus() {
+  try {
+    const data = await fetchJson('/api/pico/status');
+    pico = (data.registers || []).find((item) => item.registerId === registerId) || null;
+  } catch (error) {
+    pico = null;
+  }
+  renderPicoStatus();
+  renderCart();
+}
 
 async function init() {
   const config = await fetchJson('/api/config');
@@ -139,7 +187,7 @@ function renderCart() {
     return `
       <div class="cart-row">
         <div>
-          <strong>${quantity} x ${escapeHtml(product.name)}</strong><br>
+          <strong>${quantity} x ${escapeHtml(product.name)}</strong>${picoNeedsManualEntry() && product.cashierCode ? `<span class="cart-code">${escapeHtml(product.cashierCode)}</span>` : ''}<br>
           <small>${escapeHtml(product.category || '')} · ${stationLabel(product.stationGroup)} · ${euro(product.price)} pro Stück</small>
         </div>
         <div class="qty-controls">
@@ -199,4 +247,7 @@ els.printReceipt.addEventListener('click', () => {
 });
 
 socket.on('dashboard:changed', loadProducts);
+socket.on('pico:changed', refreshPicoStatus);
+setInterval(refreshPicoStatus, 4000);
+refreshPicoStatus();
 init().catch((error) => toast(error.message, 'error'));

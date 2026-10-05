@@ -20,6 +20,7 @@
         <a href="/">Start</a>
         <a href="/dashboard.html">Dashboard</a>
         <a href="/display.html">Anzeige</a>
+        <span id="picoStatus" class="pico-status" title="Verbindung zur Kassen-Tastatur (Pico)">Pico …</span>
       </nav>
     </header>
 
@@ -45,6 +46,7 @@
           <h2>Warenkorb</h2>
           <span class="badge dark">Live</span>
         </div>
+        <div id="picoFallback" class="pico-fallback" hidden></div>
         <div id="cart" class="cart-list"></div>
         <div class="total-box">
           <span>Summe</span>
@@ -75,6 +77,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/app.js"></script>
-  <script src="/cashier.js"></script>\n  <script src="/pico-cashier-hook.js"></script>
+  <script src="/cashier.js"></script>
+  <script src="/pico-cashier-hook.js"></script>
 </body>
 </html>

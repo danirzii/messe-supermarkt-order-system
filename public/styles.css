@@ -1939,3 +1939,100 @@ body[data-ready-count="8"] .pickup-number {
     display: none !important;
   }
 }
+
+
+/* ------------------------------------------------------------
+   Layout-Korrekturen V8
+   - Logo "Supermarkt" wurde rechts abgeschnitten
+   - Navigation brach unschoen in eine zweite Zeile um
+   - Vollbild-Button verdeckte Inhalte unten rechts
+   - Pico-Status-Ampel an der Kasse
+   ------------------------------------------------------------ */
+.topbar {
+  flex-wrap: wrap;
+  gap: 18px 28px;
+}
+
+.brand::before {
+  min-width: max-content;
+  padding-right: .12em; /* Buchstaben-Ueberhang bei Gradient-Text nicht abschneiden */
+}
+
+.brand > div { min-width: 0; }
+
+.nav {
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.nav a, .nav button { white-space: nowrap; }
+
+/* Platz unten, damit der schwebende Vollbild-Button nichts verdeckt */
+.app-shell { padding-bottom: 96px !important; }
+
+.global-fullscreen-button {
+  padding: 9px 12px;
+  opacity: .7;
+}
+.global-fullscreen-button strong { font-size: 13px; }
+
+/* Station-Karten: Titel nicht von Icons ueberdecken */
+.role-card strong { overflow-wrap: anywhere; padding-right: 72px; }
+
+/* Pico-Status */
+.pico-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--v5-line, rgba(255,255,255,.14));
+  background: rgba(255,255,255,.055);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: default;
+}
+.pico-status::before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #8a8f98;
+}
+.pico-status.ok::before { background: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
+.pico-status.bad { border-color: rgba(255,65,108,.7); background: rgba(255,65,108,.14); }
+.pico-status.bad::before { background: #ff416c; box-shadow: 0 0 10px #ff416c; }
+
+.pico-fallback {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,65,108,.55);
+  background: rgba(255,65,108,.12);
+  font-size: 14px;
+}
+.pico-fallback strong { display: block; margin-bottom: 4px; }
+.cart-code {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 9px;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: .04em;
+}
+
+.pico-settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.pico-settings-row > strong { min-width: 90px; }
+.pico-settings-row .grow { flex: 1; min-width: 160px; }

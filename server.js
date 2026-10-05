@@ -89,10 +89,74 @@ const cashRegisterQueues = new Map();
 const CASH_REGISTER_POLLING_TOKEN = process.env.CASH_REGISTER_POLLING_TOKEN || 'kasse1-test';
 const cashRegisterPollingQueues = new Map();
 
+// Pico-Schutzfunktionen (damit ein haengender Pico keinen Stau und keine
+// veralteten Eingaben an der Kasse verursacht):
+// - Jobs verfallen nach PICO_JOB_MAX_AGE_MS
+// - Pico gilt nach PICO_ONLINE_MS ohne Abfrage als "offline"
+// - zuletzt bestaetigte jobId wird nicht nochmal getippt
+// - pro Kasse kann die Pico-Uebertragung abgeschaltet werden
+const PICO_JOB_MAX_AGE_MS = Number(process.env.PICO_JOB_MAX_AGE_MS || 30000);
+const PICO_ONLINE_MS = Number(process.env.PICO_ONLINE_MS || 10000);
+const picoState = new Map();
+
+function getPicoState(registerId) {
+  const key = String(registerId);
+  if (!picoState.has(key)) {
+    picoState.set(key, { lastSeenAt: null, lastDoneAt: null, lastDoneJobId: '', expiredCount: 0 });
+  }
+  return picoState.get(key);
+}
+
+function isPicoDisabled(registerId) {
+  const db = readDb();
+  return Boolean(db.picoDisabled && db.picoDisabled[String(registerId)]);
+}
+
+function setPicoDisabled(registerId, disabled) {
+  const db = readDb();
+  if (!db.picoDisabled || typeof db.picoDisabled !== 'object') db.picoDisabled = {};
+  if (disabled) db.picoDisabled[String(registerId)] = true;
+  else delete db.picoDisabled[String(registerId)];
+  writeDb(db);
+}
+
 function getPollingQueue(registerId) {
   const key = String(registerId);
   if (!cashRegisterPollingQueues.has(key)) cashRegisterPollingQueues.set(key, []);
   return cashRegisterPollingQueues.get(key);
+}
+
+// Entfernt zu alte Jobs aus der Warteschlange und zaehlt sie als "nicht uebertragen".
+function purgeExpiredPollingJobs(registerId) {
+  const queue = getPollingQueue(registerId);
+  const now = Date.now();
+  let removed = 0;
+  while (queue.length && now - new Date(queue[0].createdAt).getTime() > PICO_JOB_MAX_AGE_MS) {
+    queue.shift();
+    removed += 1;
+  }
+  if (removed) getPicoState(registerId).expiredCount += removed;
+  return removed;
+}
+
+function buildPicoStatus() {
+  const now = Date.now();
+  return REGISTERS.map((register) => {
+    const state = getPicoState(register.id);
+    purgeExpiredPollingJobs(register.id);
+    const disabled = isPicoDisabled(register.id);
+    const seenAgo = state.lastSeenAt ? now - new Date(state.lastSeenAt).getTime() : null;
+    return {
+      registerId: register.id,
+      name: register.name,
+      disabled,
+      online: !disabled && seenAgo !== null && seenAgo <= PICO_ONLINE_MS,
+      lastSeenAt: state.lastSeenAt,
+      lastDoneAt: state.lastDoneAt,
+      queued: getPollingQueue(register.id).length,
+      expired: state.expiredCount
+    };
+  });
 }
 
 function enqueuePollingKeyboardCode(registerId, code) {
@@ -100,6 +164,9 @@ function enqueuePollingKeyboardCode(registerId, code) {
 
   if (!cleanCode) return null;
   if (!/^\d{1,32}$/.test(cleanCode)) return null;
+  if (isPicoDisabled(registerId)) return null;
+
+  purgeExpiredPollingJobs(registerId);
 
   const queue = getPollingQueue(registerId);
   const job = {
@@ -1148,6 +1215,10 @@ app.post('/api/registers/:registerId/queue-keyboard-product', (req, res) => {
       return res.status(400).json({ ok: false, error: 'missing_product_id' });
     }
 
+    if (isPicoDisabled(req.params.registerId)) {
+      return res.json({ ok: true, skipped: true, reason: 'pico_disabled' });
+    }
+
     const db = readDb();
     const product = (db.products || []).find((item) => String(item.id) === productId);
 
@@ -1210,7 +1281,21 @@ app.get('/api/registers/:registerId/next-keyboard-code', (req, res) => {
       return res.status(401).json({ ok: false, error: 'wrong_token' });
     }
 
-    const queue = getPollingQueue(req.params.registerId);
+    const registerId = req.params.registerId;
+    const state = getPicoState(registerId);
+    state.lastSeenAt = new Date().toISOString();
+
+    if (isPicoDisabled(registerId)) {
+      return res.status(204).end();
+    }
+
+    purgeExpiredPollingJobs(registerId);
+    const queue = getPollingQueue(registerId);
+
+    // Wurde dieser Job schon bestaetigt (Bestaetigung kam doppelt/verspaetet), nicht nochmal tippen.
+    while (queue.length && queue[0].jobId === state.lastDoneJobId) {
+      queue.shift();
+    }
 
     if (!queue.length) {
       return res.status(204).end();
@@ -1234,14 +1319,56 @@ app.get('/api/registers/:registerId/keyboard-code-done', (req, res) => {
       return res.status(401).json({ ok: false, error: 'wrong_token' });
     }
 
-    const queue = getPollingQueue(req.params.registerId);
+    const registerId = req.params.registerId;
+    const state = getPicoState(registerId);
+    const queue = getPollingQueue(registerId);
     const jobId = String(req.query.jobId || '');
+
+    state.lastSeenAt = new Date().toISOString();
 
     if (queue.length && queue[0].jobId === jobId) {
       queue.shift();
+      state.lastDoneAt = new Date().toISOString();
+      state.lastDoneJobId = jobId;
     }
 
     res.json({ ok: true });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+// Status aller Pico-Bridges (fuer Kassen-Ampel und Einstellungen)
+app.get('/api/pico/status', (req, res) => {
+  res.json({ ok: true, jobMaxAgeSeconds: PICO_JOB_MAX_AGE_MS / 1000, registers: buildPicoStatus() });
+});
+
+// Pico einer Kasse ein-/ausschalten (aus = manueller Modus, nichts wird in die Warteschlange gelegt)
+app.put('/api/pico/:registerId/enabled', (req, res) => {
+  try {
+    const registerId = String(req.params.registerId);
+    if (!REGISTERS.some((register) => register.id === registerId)) {
+      return res.status(404).json({ ok: false, error: 'Kasse nicht gefunden.' });
+    }
+    const enabled = Boolean(req.body && req.body.enabled);
+    setPicoDisabled(registerId, !enabled);
+    if (!enabled) getPollingQueue(registerId).length = 0;
+    io.emit('pico:changed');
+    res.json({ ok: true, registers: buildPicoStatus() });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+// Warteschlange einer Kasse leeren
+app.post('/api/pico/:registerId/clear', (req, res) => {
+  try {
+    const registerId = String(req.params.registerId);
+    const queue = getPollingQueue(registerId);
+    const removed = queue.length;
+    queue.length = 0;
+    io.emit('pico:changed');
+    res.json({ ok: true, removed, registers: buildPicoStatus() });
   } catch (error) {
     sendError(res, error);
   }
