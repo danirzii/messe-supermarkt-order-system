@@ -1156,6 +1156,9 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json({ limit: '1mb' }));
+// Produktbilder aendern sich selten: 1 Tag im Browser zwischenspeichern, damit die Kassen-Tablets
+// sie nicht bei jedem Neuladen neu laden. Der Rest (HTML/JS/CSS) wird wie bisher immer frisch geladen.
+app.use('/assets', express.static(path.join(__dirname, 'public', 'assets'), { maxAge: '1d' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 function broadcast() {
