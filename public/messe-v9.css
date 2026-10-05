@@ -212,3 +212,83 @@ body:has(.cashier-screen) .global-fullscreen-button { right: auto; left: 18px; }
 }
 .product-tile .product-copy { width: 100%; box-sizing: border-box; align-self: stretch; }
 .product-tile { text-align: left; align-items: stretch; }
+
+/* ------------------------------------------------------------
+   Kasse im Hochformat (Tablets hochkant)
+   Oben Kategorien + Produkte (scrollen), unten fester Warenkorb
+   mit Summe und "Bestellung senden" - ohne Scrollen erreichbar.
+   ------------------------------------------------------------ */
+@media (orientation: portrait) {
+  body:has(.cashier-screen) .app-shell { padding-top: 10px !important; padding-bottom: 10px !important; }
+  body:has(.cashier-screen) .topbar { flex-wrap: nowrap; gap: 12px !important; padding-bottom: 8px !important; }
+  body:has(.cashier-screen) .brand { gap: 14px !important; }
+  body:has(.cashier-screen) .brand::before { font-size: 22px; }
+  body:has(.cashier-screen) .brand::after { height: 30px; }
+  body:has(.cashier-screen) .brand h1 { font-size: 22px !important; white-space: nowrap; }
+  body:has(.cashier-screen) .nav { flex-wrap: nowrap; gap: 6px; padding-top: 0; }
+  body:has(.cashier-screen) .nav a,
+  body:has(.cashier-screen) .nav .pico-status { padding: 8px 10px !important; font-size: 13px; }
+
+  .cashier-screen {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "menu" "products" "cart";
+    height: calc(100vh - 74px);
+    gap: 10px;
+  }
+  .cashier-menu { padding: 6px !important; }
+  .cashier-menu .segmented button { min-height: 48px; }
+
+  .cashier-products { padding: 10px !important; }
+  .cashier-toolbar { margin-bottom: 10px !important; }
+  .cashier-toolbar > div { display: none; }
+  .cashier-toolbar .search { width: 100%; max-width: none; }
+  .product-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important; gap: 10px !important; }
+  .product-photo { aspect-ratio: 16 / 9 !important; }
+  .product-photo.placeholder { height: 56px !important; }
+  .product-photo.placeholder::after { font-size: 30px; }
+  .product-copy small { display: none; }
+  .product-copy { padding: 8px 10px 10px !important; gap: 4px !important; }
+  .product-tile strong { font-size: 16px !important; }
+  .product-tile .product-price { font-size: 21px !important; }
+
+  /* Warenkorb unten: links Artikel, rechts Summe + Knoepfe */
+  .cashier-cart {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 38%);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas: "title total" "warn warn" "list actions";
+    column-gap: 14px;
+    height: 34vh;
+    padding: 12px !important;
+  }
+  .cashier-cart .cart-title-row { grid-area: title; margin: 0 !important; align-self: center; }
+  .cashier-cart .cart-title-row h2 { margin: 0 !important; font-size: 20px; }
+  .cashier-cart #picoFallback { grid-area: warn; margin: 8px 0 0; padding: 8px 12px; font-size: 13px; }
+  .cashier-cart #cart { grid-area: list; margin: 10px 0 0 !important; }
+  .cashier-cart .total-box { grid-area: total; margin: 0 !important; padding: 8px 14px !important; }
+  .cashier-cart .total-box strong { font-size: 28px !important; }
+  .cashier-cart .grid { grid-area: actions; margin-top: 10px; align-content: end; }
+  .cashier-cart .grid label { font-size: 13px; }
+  .cashier-cart textarea { height: 40px; }
+  .cashier-cart #submitOrder { min-height: 76px; font-size: 22px; }
+  .cashier-cart #clearCart { min-height: 42px; }
+  .cashier-cart .empty-state { min-height: 0 !important; height: 100%; }
+  .cart-row { padding: 8px 10px !important; }
+  .cart-row strong { font-size: 16px !important; }
+  .cart-row .qty-controls .btn-small { min-width: 42px; min-height: 42px; }
+}
+
+/* styles.css setzt bei Panels overflow: visible !important - hier gezielt ueberschreiben,
+   damit nur die Produkte bzw. die Warenkorb-Liste scrollen */
+.cashier-products { overflow-y: auto !important; overflow-x: hidden !important; }
+.cashier-cart { overflow: hidden !important; }
+.cashier-cart #cart { overflow-y: auto !important; }
+@media (orientation: portrait) {
+  /* Vollbild-Knopf klein oben in die freie Luecke im Kopf, statt ueber dem Warenkorb */
+  body:has(.cashier-screen) .global-fullscreen-button {
+    top: 12px; bottom: auto; left: 50%; right: auto; transform: translateX(-50%);
+    padding: 7px 10px; opacity: .6;
+  }
+  body:has(.cashier-screen) .global-fullscreen-button strong { display: none; }
+}
