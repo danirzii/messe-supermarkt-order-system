@@ -8,7 +8,10 @@ BRANCH=claude/relaxed-cray-pg08g4
 
 cd "$LIVE" || { echo "FEHLER: $LIVE nicht gefunden"; exit 1; }
 if ! git rev-parse --verify -q server-stand >/dev/null; then
-  echo "FEHLER: Branch server-stand fehlt"; exit 1
+  # Aktuellen Server-Stand (inkl. Startseite, ohne Bestellungen) als Branch festhalten
+  git checkout -q -b server-stand || { echo "FEHLER: konnte server-stand nicht anlegen"; exit 1; }
+  git -c user.name="Server" -c user.email="server@local" commit -q -m "Startseite vom Messe-Server" -- public/index.html 2>/dev/null
+  echo "Server-Stand festgehalten (Branch server-stand)"
 fi
 
 echo "== 1/4 Lade Verbesserungen von GitHub (ohne Passwort) =="
