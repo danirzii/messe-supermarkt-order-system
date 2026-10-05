@@ -59,6 +59,8 @@ function waitLabel(iso) {
   const minutes = minutesSince(iso);
   if (minutes === null) return '';
   if (minutes < 1) return 'gerade eben';
+  if (minutes >= 24 * 60) return 'über 1 Tag alt';
+  if (minutes >= 120) return `über ${Math.floor(minutes / 60)} Std. wartet`;
   return `${minutes} min wartet`;
 }
 

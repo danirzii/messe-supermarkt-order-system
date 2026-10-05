@@ -19,8 +19,8 @@ git fetch -q origin "$BRANCH" || { echo "FEHLER: Download von GitHub fehlgeschla
 
 echo "== 2/4 Fuehre zusammen (im Testordner $TEST) =="
 git worktree remove --force "$TEST" 2>/dev/null; rm -rf "$TEST"; git worktree prune
-git branch -D zusammen 2>/dev/null >/dev/null
-git worktree add -q -b zusammen "$TEST" server-stand || { echo "FEHLER: Testordner"; exit 1; }
+git branch -D zusammen-neu 2>/dev/null >/dev/null
+git worktree add -q -b zusammen-neu "$TEST" server-stand || { echo "FEHLER: Testordner"; exit 1; }
 cd "$TEST"
 if ! git -c user.name="Server" -c user.email="server@local" merge -q --no-edit -m "Server-Stand + Verbesserungen" "origin/$BRANCH"; then
   echo "KONFLIKT in diesen Dateien:"

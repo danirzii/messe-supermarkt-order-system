@@ -144,6 +144,7 @@ function renderProducts() {
   els.products.querySelectorAll('.product-tile').forEach((button) => {
     button.addEventListener('click', () => addToCart(button.dataset.id));
   });
+  updateTileBadges();
 }
 
 function addToCart(productId) {
@@ -172,11 +173,21 @@ function cartTotal() {
   return total;
 }
 
+// Zeigt auf jeder Produktkachel, wie oft das Produkt im Warenkorb liegt.
+function updateTileBadges() {
+  els.products.querySelectorAll('.product-tile').forEach((tile) => {
+    const qty = cart.get(tile.dataset.id);
+    if (qty) tile.dataset.qty = qty;
+    else delete tile.dataset.qty;
+  });
+}
+
 function renderCart() {
   if (cart.size === 0) {
     els.cart.innerHTML = '<div class="empty-state" style="min-height: 180px;"><div><strong>Noch leer</strong><span class="muted">Links Artikel antippen.</span></div></div>';
     els.cartTotal.textContent = euro(0);
     els.submitOrder.disabled = true;
+    updateTileBadges();
     return;
   }
 
@@ -187,8 +198,8 @@ function renderCart() {
     return `
       <div class="cart-row">
         <div>
-          <strong>${quantity} x ${escapeHtml(product.name)}</strong>${picoNeedsManualEntry() && product.cashierCode ? `<span class="cart-code">${escapeHtml(product.cashierCode)}</span>` : ''}<br>
-          <small>${escapeHtml(product.category || '')} · ${stationLabel(product.stationGroup)} · ${euro(product.price)} pro Stück</small>
+          <strong>${quantity}× ${escapeHtml(product.name)}</strong>${picoNeedsManualEntry() && product.cashierCode ? `<span class="cart-code">${escapeHtml(product.cashierCode)}</span>` : ''}<br>
+          <small>${euro(product.price)} · zusammen ${euro(product.price * quantity)}</small>
         </div>
         <div class="qty-controls">
           <button class="btn-small btn-dark" data-action="minus" data-id="${escapeHtml(productId)}">−</button>
@@ -199,6 +210,7 @@ function renderCart() {
     `;
   }).join('');
   els.cartTotal.textContent = euro(cartTotal());
+  updateTileBadges();
 
   els.cart.querySelectorAll('button').forEach((button) => {
     const id = button.dataset.id;

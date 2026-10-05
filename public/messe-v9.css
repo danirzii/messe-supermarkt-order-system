@@ -129,3 +129,86 @@
 .product-tile .product-price { font-size: 24px !important; }
 .cart-row .qty-controls .btn-small { min-width: 52px; min-height: 52px; font-size: 22px; }
 #submitOrder { min-height: 72px; font-size: 22px; }
+
+/* ------------------------------------------------------------
+   Design V10 - Arbeitsseiten (Kasse, Stationen)
+   ------------------------------------------------------------ */
+
+/* Kompakter Kopfbereich auf Kasse und Stationen */
+body:has(.cashier-screen) .topbar,
+body:has(.orders-board) .topbar { min-height: 0 !important; padding-bottom: 12px !important; align-items: center !important; }
+body:has(.cashier-screen) .brand::before,
+body:has(.orders-board) .brand::before { font-size: 30px; min-width: max-content; }
+body:has(.cashier-screen) .brand::after,
+body:has(.orders-board) .brand::after { height: 40px; }
+body:has(.cashier-screen) .brand h1,
+body:has(.orders-board) .brand h1 { font-size: 28px !important; }
+body:has(.cashier-screen) .brand p,
+body:has(.orders-board) .brand p { display: none; }
+body:has(.cashier-screen) .app-shell { padding-top: 14px !important; padding-bottom: 14px !important; }
+
+/* Kasse: alles auf einen Bildschirm, nur die Produkte scrollen */
+.cashier-screen {
+  grid-template-columns: minmax(0, 1fr) 360px !important;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: "menu cart" "products cart";
+  height: calc(100vh - 92px);
+  align-items: stretch !important;
+}
+.cashier-menu { grid-area: menu; min-height: 0 !important; padding: 8px !important; }
+.cashier-menu .mini-section-title { display: none; }
+.cashier-menu .segmented { display: flex !important; flex-wrap: wrap; gap: 8px !important; }
+.cashier-menu .segmented button {
+  width: auto; flex: 1 1 0; justify-content: center; text-align: center;
+  min-height: 52px; font-size: 17px !important; font-weight: 800;
+}
+.cashier-menu .segmented button.active { box-shadow: inset 0 -3px 0 var(--v5-orange) !important; }
+.cashier-products { grid-area: products; min-height: 0 !important; overflow-y: auto; }
+.cashier-cart {
+  grid-area: cart; min-height: 0 !important; position: static !important;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.cashier-cart #cart { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-bottom: 12px; }
+.cashier-cart .total-box { flex: 0 0 auto; margin-bottom: 10px; }
+.cashier-cart .grid { flex: 0 0 auto; gap: 8px !important; }
+.cashier-cart textarea { min-height: 0; height: 52px; }
+.cashier-cart .empty-state { min-height: 120px !important; }
+
+/* Produktkacheln: Text links, Mengen-Badge */
+.product-tile { position: relative; min-height: 0; }
+.product-copy { justify-items: start; text-align: left; }
+.product-tile[data-qty]::after {
+  content: attr(data-qty) "\00d7";
+  position: absolute; top: 8px; right: 8px;
+  min-width: 44px; height: 44px; padding: 0 10px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff4670, #ff7a45);
+  color: #fff; font-size: 20px; font-weight: 900;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+.product-tile[data-qty] { border-color: rgba(255,122,51,.75) !important; }
+
+/* Warenkorb-Zeilen */
+.cart-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.cart-row strong { font-size: 18px !important; }
+.cart-row .qty-controls { gap: 6px; }
+.cart-row .qty-controls .btn-small { min-width: 46px; min-height: 46px; font-size: 20px; }
+
+/* Vollbild-Button auf der Kasse links unten, dort ist Platz */
+body:has(.cashier-screen) .global-fullscreen-button { right: auto; left: 18px; }
+
+/* Stationen: Nummer etwas kleiner, mehr Platz fuer die Artikel */
+.orders-board .order-no { font-size: clamp(40px, 4.4vw, 56px) !important; }
+
+/* Kleine Bildschirme: Kasse wieder untereinander */
+@media (max-width: 900px) {
+  .cashier-screen {
+    grid-template-columns: 1fr !important;
+    grid-template-areas: "menu" "products" "cart";
+    height: auto;
+  }
+  .cashier-products, .cashier-cart { overflow: visible; }
+}
+.product-tile .product-copy { width: 100%; box-sizing: border-box; align-self: stretch; }
+.product-tile { text-align: left; align-items: stretch; }
