@@ -23,3 +23,7 @@ data/db-backup-*.json
 # lokale npm config
 .npmrc
 EOF
+
+# Visual Studio / lokale Dateien
+.vs/
+*.suo

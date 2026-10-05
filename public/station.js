@@ -67,7 +67,9 @@ function renderOrder(order) {
   const claimedByOther = relevant.find((item) => item.status === 'in_progress' && item.claimedBy && item.claimedBy !== stationId);
   const claimedByMe = relevant.some((item) => item.status === 'in_progress' && item.claimedBy === stationId);
   const isOpen = relevant.every((item) => item.status === 'open');
-  const cardClass = claimedByOther ? 'order-card blocked' : claimedByMe ? 'order-card claimed' : 'order-card';
+  const age = minutesSince(order.createdAt);
+  const ageClass = age >= 10 ? ' late' : age >= 5 ? ' warn' : '';
+  const cardClass = (claimedByOther ? 'order-card blocked' : claimedByMe ? 'order-card claimed' : 'order-card') + ageClass;
   const ownerText = claimedByOther ? stationName(claimedByOther.claimedBy) : '';
 
   const items = relevant.map((item) => `

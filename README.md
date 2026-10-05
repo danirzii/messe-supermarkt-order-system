@@ -61,3 +61,21 @@ Daraus berechnet das Dashboard:
 - Anzahl aktiver Bestellungen
 - älteste aktive Bestellung
 
+
+
+## Pico-Kassentastatur (Status und Schutz)
+
+Die Picos fragen den Server per Polling ab (`/api/registers/:id/next-keyboard-code`). Der Server schuetzt davor, dass ein haengender Pico alte Eingaben staut:
+
+- Codes, die laenger als 30 Sekunden warten, verfallen (`PICO_JOB_MAX_AGE_MS`)
+- Ein Pico gilt nach 10 Sekunden ohne Abfrage als offline (`PICO_ONLINE_MS`)
+- Bereits bestaetigte Jobs werden nicht nochmal ausgeliefert
+- Pro Kasse gibt es eine Status-Ampel; bei offline/aus zeigt der Warenkorb die Artikelnummern zum Selbsttippen
+- Unter `/settings.html` kann man jeden Pico ein-/ausschalten und die Warteschlange leeren
+
+API: `GET /api/pico/status`, `PUT /api/pico/:id/enabled`, `POST /api/pico/:id/clear`.
+
+## Hinweise
+
+- `data/db.json` enthaelt die echten Bestellungen. Vor einem `git pull` auf dem Server sichern.
+- Die Produktbilder in `public/assets/products/` sind je ca. 2 MB gross. Fuer Tablets an den Kassen besser auf ca. 100-200 KB verkleinern.
