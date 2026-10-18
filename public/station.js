@@ -3,6 +3,20 @@ const { escapeHtml, fetchJson, toast, getParam, time } = window.OrderApp;
 const stationId = getParam('station', 'hot1');
 let station = null;
 
+// Erinnerung an vergessene "Fertig"-Klicks. Bei hohem Andrang warten alle Bestellungen laenger,
+// deshalb zaehlt vor allem: Eine NEUERE Bestellung ist schon fertig, die aeltere steht noch offen.
+const VERGESSEN_UEBERHOLT_MINUTEN = 2;   // so lange ist die neuere Bestellung schon fertig
+const VERGESSEN_NOTBREMSE_MINUTEN = 15;  // unabhaengig davon: so lange offen = markieren
+const ERINNERUNGSTON_ABSTAND_SEKUNDEN = 90;
+
+let currentOrders = [];
+let lastSeen = new Map();          // orderId -> createdAt (ms) der zuletzt angezeigten Bestellungen
+let finishedEvents = [];           // { createdAt, finishedAt } von Bestellungen, die hier erledigt wurden
+let lastReminderAt = 0;
+let soundOn = false;
+try { soundOn = localStorage.getItem('stationSound') === '1'; } catch (error) { soundOn = false; }
+let audioCtx = null;
+
 const els = {
   pageTitle: document.getElementById('pageTitle'),
   subtitle: document.getElementById('subtitle'),
@@ -22,6 +36,8 @@ async function init() {
     : 'Kaffee-Station sieht nur Kaffeeartikel.';
   tickClock();
   window.setInterval(tickClock, 10000);
+  installSoundButton();
+  window.setInterval(() => renderOrders(currentOrders), 20000);
   await loadOrders();
 }
 
@@ -31,11 +47,84 @@ function tickClock() {
 
 async function loadOrders() {
   const orders = await fetchJson(`/api/stations/${encodeURIComponent(stationId)}/orders`);
+  const stillOpen = new Set(orders.map((order) => order.id));
+  const gone = Array.from(lastSeen.keys()).filter((id) => !stillOpen.has(id));
+  for (const id of gone) {
+    const createdAt = lastSeen.get(id);
+    lastSeen.delete(id);
+    // Stornierte Bestellungen zaehlen nicht als "fertig"
+    try {
+      const order = await fetchJson(`/api/orders/${encodeURIComponent(id)}`);
+      if (order && order.status === 'cancelled') continue;
+    } catch (error) { /* im Zweifel als fertig werten */ }
+    finishedEvents.push({ createdAt, finishedAt: Date.now() });
+  }
+  finishedEvents = finishedEvents.slice(-50);
+  for (const order of orders) lastSeen.set(order.id, new Date(order.createdAt).getTime());
+  currentOrders = orders;
   renderOrders(orders);
+}
+
+function isForgotten(order) {
+  const created = new Date(order.createdAt).getTime();
+  const now = Date.now();
+  if (now - created >= VERGESSEN_NOTBREMSE_MINUTEN * 60000) return true;
+  return finishedEvents.some((event) => event.createdAt > created
+    && now - event.finishedAt >= VERGESSEN_UEBERHOLT_MINUTEN * 60000);
+}
+
+function beep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25].forEach((offset, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = i === 0 ? 880 : 660;
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + offset + 0.22);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime + offset);
+      osc.stop(audioCtx.currentTime + offset + 0.25);
+    });
+  } catch (error) { /* kein Ton moeglich */ }
+}
+
+function renderForgottenBanner(count) {
+  let banner = document.getElementById('forgottenBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'forgottenBanner';
+    banner.className = 'forgotten-banner';
+    els.orders.parentNode.insertBefore(banner, els.orders);
+  }
+  banner.hidden = count === 0;
+  banner.textContent = count === 1
+    ? '1 Bestellung wartet, obwohl neuere schon raus sind – schon fertig? Dann bitte „Fertig“ drücken.'
+    : `${count} Bestellungen warten, obwohl neuere schon raus sind – schon fertig? Dann bitte „Fertig“ drücken.`;
+  if (count > 0 && soundOn && Date.now() - lastReminderAt >= ERINNERUNGSTON_ABSTAND_SEKUNDEN * 1000) {
+    lastReminderAt = Date.now();
+    beep();
+  }
+}
+
+function installSoundButton() {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn-dark';
+  const label = () => { button.textContent = soundOn ? 'Erinnerungston: an' : 'Erinnerungston: aus'; };
+  label();
+  button.addEventListener('click', () => {
+    soundOn = !soundOn;
+    try { localStorage.setItem('stationSound', soundOn ? '1' : '0'); } catch (error) { /* egal */ }
+    if (soundOn) beep();
+    label();
+  });
+  els.refresh.parentNode.insertBefore(button, els.refresh);
 }
 
 function renderOrders(orders) {
   els.openCount.textContent = `${orders.length} offen`;
+  renderForgottenBanner(orders.filter(isForgotten).length);
   if (orders.length === 0) {
     els.orders.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div><strong>Alles sauber</strong><span class="muted">Keine offenen Bestellungen für diese Station.</span></div></div>';
     return;
@@ -71,7 +160,8 @@ function renderOrder(order) {
   const isOpen = relevant.every((item) => item.status === 'open');
   const age = minutesSince(order.createdAt);
   const ageClass = age >= 10 ? ' late' : age >= 5 ? ' warn' : '';
-  const cardClass = (claimedByOther ? 'order-card blocked' : claimedByMe ? 'order-card claimed' : 'order-card') + ageClass;
+  const forgotten = !claimedByOther && isForgotten(order);
+  const cardClass = (claimedByOther ? 'order-card blocked' : claimedByMe ? 'order-card claimed' : 'order-card') + ageClass + (forgotten ? ' forgotten' : '');
   const ownerText = claimedByOther ? stationName(claimedByOther.claimedBy) : '';
 
   const items = relevant.map((item) => `
@@ -81,18 +171,17 @@ function renderOrder(order) {
     </li>
   `).join('');
 
+  // Ein Tipp genuegt: "Fertig" ist immer der grosse Hauptknopf.
   let actions = '';
   if (claimedByOther) {
     actions = `<button disabled class="btn-dark">Bei ${escapeHtml(ownerText)} in Arbeit</button>`;
-  } else if (claimedByMe) {
-    actions = `
-      <button class="btn-green" data-action="done" data-id="${escapeHtml(order.id)}">Fertig</button>
-      <button class="btn-dark" data-action="release" data-id="${escapeHtml(order.id)}">Zurücklegen</button>
-    `;
-  } else if (isOpen) {
-    actions = `<button class="btn-blue" data-action="start" data-id="${escapeHtml(order.id)}">In Arbeit nehmen</button>`;
   } else {
-    actions = `<button class="btn-green" data-action="done" data-id="${escapeHtml(order.id)}">Fertig</button>`;
+    actions = `<button class="btn-green btn-done" data-action="done" data-id="${escapeHtml(order.id)}">Fertig</button>`;
+    if (claimedByMe) {
+      actions += `<button class="btn-dark btn-secondary" data-action="release" data-id="${escapeHtml(order.id)}">Zurücklegen</button>`;
+    } else if (isOpen) {
+      actions += `<button class="btn-dark btn-secondary" data-action="start" data-id="${escapeHtml(order.id)}">In Arbeit nehmen</button>`;
+    }
   }
 
   return `
@@ -106,6 +195,7 @@ function renderOrder(order) {
           <span class="badge ${minutesSince(order.createdAt) >= 10 ? 'red' : minutesSince(order.createdAt) >= 5 ? 'blue' : 'dark'}">${waitLabel(order.createdAt)}</span>
         </div>
       </div>
+      ${forgotten ? '<div class="forgotten-hint">Schon fertig? Neuere Bestellung ist bereits raus.</div>' : ''}
       <ul class="order-items">${items}</ul>
       ${order.customerName ? `<div class="note-box"><strong>Kunde:</strong> ${escapeHtml(order.customerName)}</div>` : ''}
       ${order.note ? `<div class="note-box"><strong>Notiz:</strong> ${escapeHtml(order.note)}</div>` : ''}
