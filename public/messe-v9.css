@@ -313,3 +313,26 @@ body:has(.cashier-screen) .global-fullscreen-button { right: auto; left: 18px; }
   50% { box-shadow: 0 0 0 8px rgba(255, 65, 108, .55); }
 }
 .order-card .actions .btn-done { background: linear-gradient(135deg, #16a34a, #22c55e) !important; color: #fff !important; border: 0 !important; box-shadow: 0 10px 30px rgba(34, 197, 94, .25); }
+
+/* ------------------------------------------------------------
+   Ueberlappungen: Vollbild-Knopf sitzt in der Navigation statt
+   ueber dem Inhalt zu schweben; Station-Knoepfe gruppiert
+   ------------------------------------------------------------ */
+.global-fullscreen-button.in-nav,
+body:has(.cashier-screen) .global-fullscreen-button.in-nav {
+  position: static !important; transform: none !important;
+  top: auto; left: auto; right: auto; bottom: auto;
+  opacity: 1; box-shadow: none !important;
+  padding: 11px 13px !important; border-radius: 10px !important;
+  background: rgba(255,255,255,0.055) !important;
+  border: 1px solid var(--v5-line, rgba(255,255,255,.14)) !important;
+}
+.global-fullscreen-button.in-nav strong { display: none; }
+.global-fullscreen-button.in-nav .global-fullscreen-icon { width: 20px; height: 20px; }
+.global-fullscreen-button.in-nav.active { background: rgba(255,122,51,.18) !important; }
+/* Kein Extra-Platz unten mehr noetig, wenn der Knopf in der Navigation sitzt */
+body:has(.global-fullscreen-button.in-nav) .app-shell { padding-bottom: 28px !important; }
+body:has(.cashier-screen) .app-shell { padding-bottom: 14px !important; }
+
+.toolbar-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.order-meta { row-gap: 6px !important; align-items: center; }

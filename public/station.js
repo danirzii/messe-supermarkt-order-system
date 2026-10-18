@@ -119,7 +119,12 @@ function installSoundButton() {
     if (soundOn) beep();
     label();
   });
-  els.refresh.parentNode.insertBefore(button, els.refresh);
+  // Ton- und Aktualisieren-Knopf rechts zusammen gruppieren
+  const group = document.createElement('div');
+  group.className = 'toolbar-buttons';
+  els.refresh.parentNode.insertBefore(group, els.refresh);
+  group.appendChild(button);
+  group.appendChild(els.refresh);
 }
 
 function renderOrders(orders) {

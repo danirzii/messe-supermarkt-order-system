@@ -190,7 +190,16 @@
       updateButton(button);
     });
 
-    document.body.appendChild(button);
+    // Wenn die Seite eine Navigationsleiste hat, sitzt der Knopf dort als normaler Knopf
+    // und schwebt nicht ueber dem Inhalt.
+    var nav = document.querySelector('.topbar .nav');
+    if (nav) {
+      button.classList.add('in-nav');
+      button.title = 'Vollbild';
+      nav.appendChild(button);
+    } else {
+      document.body.appendChild(button);
+    }
     updateButton(button);
   }
 
