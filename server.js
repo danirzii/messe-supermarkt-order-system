@@ -1158,6 +1158,16 @@ const io = new Server(server);
 app.use(express.json({ limit: '1mb' }));
 // Produktbilder aendern sich selten: 1 Tag im Browser zwischenspeichern, damit die Kassen-Tablets
 // sie nicht bei jedem Neuladen neu laden. Der Rest (HTML/JS/CSS) wird wie bisher immer frisch geladen.
+// Startseite: Layout-Korrektur (start-fix.css) beim Ausliefern anhaengen, ohne index.html
+// selbst zu aendern. So bleibt die Startseite vom Messe-Server unveraendert und das
+// Zusammenfuehren mit dem Server-Stand bleibt konfliktfrei.
+app.get(['/', '/index.html'], (req, res, next) => {
+  fs.readFile(path.join(__dirname, 'public', 'index.html'), 'utf8', (error, html) => {
+    if (error || !html.includes('</head>') || html.includes('start-fix.css')) return next();
+    res.type('html').send(html.replace('</head>', '  <link rel="stylesheet" href="/start-fix.css" />\n</head>'));
+  });
+});
+
 app.use('/assets', express.static(path.join(__dirname, 'public', 'assets'), { maxAge: '1d' }));
 app.use(express.static(path.join(__dirname, 'public')));
 

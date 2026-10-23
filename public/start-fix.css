@@ -1,0 +1,29 @@
+/* ------------------------------------------------------------
+   start-fix.css - Korrektur fuer die Startseite ("Arbeitsplatz auswaehlen")
+   Wird vom Server automatisch an index.html angehaengt; index.html selbst
+   bleibt unveraendert.
+   Problem: Das Karten-Icon stand fest "mittig rechts" und lag bei schmalen
+   Karten oder sehr fetter Schrift ueber dem Titel ("Kasse 1", "Kaffee & Getraenke").
+   Loesung: Icon in die obere rechte Ecke (Hoehe der Plakette), Text haelt rechts
+   Abstand zum Pfeil.
+   ------------------------------------------------------------ */
+a.card { padding-right: 64px; }
+
+a.card .cardIcon {
+  top: 22px;
+  right: 56px;
+  transform: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  font-size: 26px;
+}
+
+a.card h3 { overflow-wrap: break-word; hyphens: auto; }
+
+/* Kleine Verwaltungs-Karten: bei schmaleren Bildschirmen zu zweit statt zu viert,
+   sonst stossen "Abholanzeige"/"Einstellungen" an den Pfeil */
+.smallText { min-width: 0; }
+@media (max-width: 1400px) {
+  .gridAdmin { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
